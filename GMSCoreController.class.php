@@ -21,6 +21,12 @@ class GlobalShopCoreController {
 	/** @Inject */
 	public $db;
 	
+	/** @Inject */
+	public $text;
+	
+	/** @Inject */
+	public $util;
+	
 	/**
 	 * @Setup
 	 */
@@ -30,7 +36,7 @@ class GlobalShopCoreController {
 //		var_dump($this->itemSearch(Array('pant')), $this->itemSearch(Array('pant'),50,300), $this->itemSearch(Array('pant'), false, false, 105));
 //		$shop = $this->getShop(1, false, false);
 //		var_dump($this->getShopItems($shop->id, 1));
-		var_dump($this->getCategories());
+		var_dump($this->formatShop($this->getShop(1)));
 	}
 	
 	/**
@@ -231,6 +237,42 @@ EOD;
 			$result[$category->id] = $category->name;
 		}
 		return $result;
+	}
+	
+	/**
+	 * Format shop for messages.
+	 *
+	 * @params array $shop - the shop array structur
+	 * @return string - the formated message blob
+	 */
+	public function formatShop($shop) {
+		$categories = $this->getCategories();
+		
+		$cats = Array();
+		foreach($shop->items as $item) {
+			if(isset($cats[$item->category])) {
+				$cats[$item->category]++;
+			}
+			else {
+				$cats[$item->category] = 1;
+			}
+		}
+		
+		if(count($cats) == 0) {
+			$cats[] = '<tab>This shop is empty at the moment.';
+		}
+		else {
+			foreach($cats as $cid => &$cat) {
+				$cat = sprintf('<tab>%s (%d %s)', $categories[$cid], $cat, ($cat > 1 ? 'items' : 'item'));
+			}
+		}
+		if($this->util->endsWith($shop->owner, 's')) {
+			$title = $shop->owner."' shop";
+		}
+		else {
+			$title = $shop->owner.'s shop';
+		}
+		return $this->text->make_blob($title, implode('<br><br>',$cats));
 	}
 	
 	/**
