@@ -36,7 +36,7 @@ class GlobalShopCoreController {
 //		var_dump($this->itemSearch(Array('pant')), $this->itemSearch(Array('pant'),50,300), $this->itemSearch(Array('pant'), false, false, 105));
 //		$shop = $this->getShop(1, false, false);
 //		var_dump($this->getShopItems($shop->id, 1));
-		var_dump($this->formatShop($this->getShop(1)));
+		var_dump($this->formatCategory($this->getShop(1),1));
 	}
 	
 	/**
@@ -117,6 +117,7 @@ EOD;
 		}
 		$sql = <<<EOD
 SELECT
+	`gms_items`.`id`,
 	`gms_items`.`lowid`,
 	`gms_items`.`highid`,
 	`gms_items`.`ql`,
@@ -194,6 +195,7 @@ EOD;
 		$sql = implode(" AND ", $sqlPattern);
 		$sql = <<<EOD
 SELECT
+	`gms_items`.`id`,
 	`gms_items`.`shopid`,
 	`gms_items`.`lowid`,
 	`gms_items`.`highid`,
@@ -266,13 +268,63 @@ EOD;
 				$cat = sprintf('<tab>%s (%d %s)', $categories[$cid], $cat, ($cat > 1 ? 'items' : 'item'));
 			}
 		}
+		return $this->text->make_blob($this->getTitle($shop), implode('<br><br>',$cats));
+	}
+	
+	/**
+	 * Format shop category for messages.
+	 *
+	 * @params array $shop - the shop array structur
+	 * @params int $category - the category id
+	 * @return string - the formated message blob
+	 */
+	public function formatCategory($shop, $category) {
+		$categories = $this->getCategories();
+		if(!isset($categories[$category])) {
+			return "Error! Invalid id '$category'";
+		}
+		$items = Array(); //$item["lowid/highid"] = array (ql => item)
+		foreach($shop->items as $item) {
+			if($item->category == $category) {
+				$idx = $item->lowid.'/'.$item->highid;
+				if(!isset($items[$idx])) {
+					$items[$idx] = Array($item->ql => $item);
+				}
+				else {
+					$items[$idx][$item->ql] = $item;
+				}
+			}
+		}
+		
+		$out = Array();
+		foreach($items as $item) {
+			$tmp = Array();
+			foreach($item as $ql => $obj) {
+				$tmp[] = '['.$this->text->make_item($obj->lowid, $obj->highid, $ql, "QL$ql").' '.$this->priceToString($obj->price).']';
+			}
+			$out[] = sprintf("<tab>%s %s<br><tab>%s", $this->text->make_image($obj->icon), $obj->name, implode(' ', $tmp));
+		}
+		$out = implode('<br><br><pagebreak>', $out);
+		return $this->text->make_blob($this->getTitle($shop).' - '.$categories[$category], $out);
+	}
+	
+	/**
+	 * Generates the contact chunk for messages.
+	 *
+	 * @param array $shop - the shop array structur
+	 * @return string - the formated string chunk
+	 */
+	public function formatContacts($shop) {
+		return '<center>contacts</center>';
+	}
+	
+	public function getTitle($shop) {
 		if($this->util->endsWith($shop->owner, 's')) {
-			$title = $shop->owner."' shop";
+			return $shop->owner."' shop";
 		}
 		else {
-			$title = $shop->owner.'s shop';
+			return $shop->owner.'s shop';
 		}
-		return $this->text->make_blob($title, implode('<br><br>',$cats));
 	}
 	
 	/**
@@ -321,16 +373,16 @@ EOD;
 			return 'offer';
 		}
 		elseif($price < 1000) {
-			return "$price credits";
+			return $price;
 		}
 		elseif($price < 1000000) {
-			return ($price/1000.0).'k credits';
+			return ($price/1000.0).'k';
 		}
 		elseif($price < 1000000000) {
-			return ($price/1000000.0).'m credits';
+			return ($price/1000000.0).'m';
 		}
 		else {
-			return ($price/1000000000.0).'b credits';
+			return ($price/1000000000.0).'b';
 		}
 	}
 }
