@@ -30,6 +30,7 @@ class GlobalShopCoreController {
 //		var_dump($this->itemSearch(Array('pant')), $this->itemSearch(Array('pant'),50,300), $this->itemSearch(Array('pant'), false, false, 105));
 //		$shop = $this->getShop(1, false, false);
 //		var_dump($this->getShopItems($shop->id, 1));
+		var_dump($this->getCategories());
 	}
 	
 	/**
@@ -209,6 +210,29 @@ LIMIT 40
 EOD;
 		return $this->db->query($sql, $data);
 	}
+	
+	/**
+	 * Get all categories.
+	 *
+	 * @return array - returns an array of categories, array index is category id and array value is category name
+	 */
+	public function getCategories() {
+		$sql = <<<EOD
+SELECT
+	`gms_categories`.`id`,
+	`gms_categories`.`name`
+FROM
+	`gms_categories`
+EOD;
+		$data = $this->db->query($sql);
+		
+		$result = Array();
+		foreach($data as $category) {
+			$result[$category->id] = $category->name;
+		}
+		return $result;
+	}
+	
 	/**
 	 * Parses a price string to its integer value.
 	 *
