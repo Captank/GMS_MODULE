@@ -153,12 +153,12 @@ EOD;
 	 * @Matches("/^cgms item (\d+)$/i")
 	 */
 	public function itemEntryCommand($message, $channel, $sender, $sendto, $args) {
-		$item = $this->getItemEntry($args[1]);
-		if($item == null) {
+		$entry = $this->getItemEntry($args[1]);
+		if($entry == null) {
 			$msg = 'Error! Entry '.$args[1].' not found';
 		}
 		else {
-			$msg = $this->formatItemEntry();
+			$msg = $this->formatItemEntry($entry);
 		}
 		$sendto->reply($msg);
 	}
@@ -410,6 +410,43 @@ EOD;
 		return $this->db->query($sql, $data);
 	}
 	
+	/**
+	 * Get all relevant shop data for an item entry.
+	 *
+	 * @param int $id - the id of the item entry
+	 * @return array - the shop array structure, null if invalid id
+	 */
+	public function getItemEntry($id) {
+	$sql = <<<EOD
+SELECT
+	`gms_items`.`id`,
+	`gms_items`.`shopid`,
+	`gms_items`.`lowid`,
+	`gms_items`.`highid`,
+	`gms_items`.`ql`,
+	`aodb`.`name`,
+	`aodb`.`icon`,
+	`gms_items`.`price`,
+	`gms_item_categories`.`category`
+FROM
+	`gms_items`
+		LEFT JOIN
+	`aodb` ON `gms_items`.`lowid` = `aodb`.`lowid` AND `gms_items`.`highid` = `aodb`.`highid`
+		LEFT JOIN
+	`gms_item_categories` ON `gms_item_categories`.`lowid` = `gms_items`.`lowid` AND `gms_item_categories`.`highid` = `gms_items`.`highid`
+WHERE
+	`gms_items`.`id` = ?
+EOD;
+		$item = $this->db->query($sql, $id);
+		if(count($item) != 1) {
+			return null;
+		}
+		
+		$result = $this->getShop($item[0]->shopid, true, false);
+		$result->items = $item;
+		return $result;
+		
+	}
 	/**
 	 * Get all categories.
 	 *
