@@ -75,7 +75,7 @@ EOD;
 			$this->db->exec($sql, $sender);
 			$msg = 'Registration successful.';
 		}
-		$sendto->reply();
+		$sendto->reply($msg);
 	}
 	
 	
