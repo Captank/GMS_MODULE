@@ -6,6 +6,18 @@
  *
  * @Instance
  *
+ *	@DefineCommand(
+ *		command     = 'cgms',
+ *		accessLevel = 'all',
+ *		description = 'core gms command',
+ *		help        = 'gmscore.txt'
+ *	)
+ *	@DefineCommand(
+ *		command     = 'rgms',
+ *		accessLevel = 'all',
+ *		description = 'gms command relay',
+ *		help        = 'gmscore.txt'
+ *	)
  */
 class GlobalShopCoreController {
 
@@ -39,7 +51,42 @@ class GlobalShopCoreController {
 //		var_dump($this->itemSearch(Array('pant')), $this->itemSearch(Array('pant'),50,300), $this->itemSearch(Array('pant'), false, false, 105));
 //		$shop = $this->getShop(1, false, false);
 //		var_dump($this->getShopItems($shop->id, 1));
-		var_dump($this->formatContacts($this->getShop(1)));
+//		var_dump($this->formatContacts($this->getShop(1)));
+		var_dump($this->getShop('xD', false, false));
+	}
+	
+	/**
+	 * This command handler handles the registration process.
+	 *
+	 * @HandlesCommand("cgms")
+	 * @Matches("/^cgms register$/i")
+	 */
+	public function gmsRegisterCommand($message, $channel, $sender, $sendto, $args) {
+		if(($shop = $this->getShop($sender, false, false)) !== NULL) {
+			$msg = 'Error! You are already registered on '.$this->getTitle($shop->owner).'.';
+		}
+		else {
+			$sql = <<<EOD
+INSERT INTO `gms_shops`
+    (`owner`)
+VALUES
+    (?)
+EOD;
+			$this->db->exec($sql, $sender);
+			$msg = 'Registration successful.';
+		}
+		$sendto->reply();
+	}
+	
+	
+	/**
+	 * This command handler handles the relay
+	 *
+	 * @HandlesCommand("rgms")
+	 * @Matches("/^rgms/i")
+	 */
+	public function relayCommand($message, $channel, $sender, $sendto, $args) {
+		$sendto->reply('Relay not implemented yet');
 	}
 	
 	/**
