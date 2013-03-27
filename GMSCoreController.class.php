@@ -442,8 +442,9 @@ EOD;
 			return null;
 		}
 		
-		$result = $this->getShop($item[0]->shopid, true, false);
-		$result->items = $item;
+		$item = $item[0];
+		$result = $this->getShop($item->shopid, true, false);
+		$result->itemEntry = $item;
 		return $result;
 		
 	}
@@ -512,7 +513,7 @@ EOD;
 		if(!isset($categories[$category])) {
 			return "Error! Invalid id '$category'";
 		}
-		$items = Array(); //$item["lowid/highid"] = array (ql => item)
+		$items = Array();
 		foreach($shop->items as $item) {
 			if($item->category == $category) {
 				$idx = $item->lowid.'/'.$item->highid;
@@ -536,6 +537,21 @@ EOD;
 		$out[] = $this->formatContacts($shop);
 		$out = implode('<br><br><pagebreak>', $out);
 		return $this->text->make_blob($this->getTitle($shop).' - '.$categories[$category], $out);
+	}
+	
+	/**
+	 * Format an item entry for messages.
+	 *
+	 * @param array $shop - the shop array structur
+	 * @return string - the formated message blob
+	 */
+	public function formatItemEntry($shop) {
+		$categories = $this->getCategories();
+		$msg = 	$categories[$shop->itemEntry->category].'<br><br><tab>'.
+				$this->text->make_item($shop->itemEntry->lowid, $shop->itemEntry->highid, $shop->itemEntry->ql, $shop->itemEntry->ql.' '.$shop->itemEntry->name).
+				'<br><tab>Price: '.$this->priceToString($shop->itemEntry->price).'<br>'.
+				$this->formatContacts($shop);
+		return $this->text->make_blob('Item details', $msg);
 	}
 	
 	/**
