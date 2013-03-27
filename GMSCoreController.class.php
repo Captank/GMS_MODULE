@@ -502,6 +502,12 @@ EOD;
 		return '<center>'.implode('  ', $contacts).'</center>';
 	}
 	
+	/**
+	 * Generates the shop blob title.
+	 *
+	 * @param array $shop - the shop array structur
+	 * @return string - the shop blob title
+	 */
 	public function getTitle($shop) {
 		if($this->util->endsWith($shop->owner, 's')) {
 			return $shop->owner."' shop";
