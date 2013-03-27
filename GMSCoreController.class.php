@@ -42,6 +42,9 @@ class GlobalShopCoreController {
 	/** @Inject */
 	public $buddylistManager;
 	
+	/** @Inject */
+	public $commandManager;
+	
 	private $shopNotFound = 'Error! No shop found for <highlight>%s<end>';
 	private $needToRegister = "You need to register first.";
 	
@@ -118,17 +121,19 @@ EOD;
 	 * @Matches("/^cgms search (.+)$/i"
 	 */
 	public function gmsSearchCommad($message, $channel, $sender, $sendto, $args) {
+		$owner = $this->getShop($sender, false, false);
+		$owner =  $owner === NULL ? false : $owner->id;
 		$c = count($args);
 		$keywords = preg_split("|\\s+|", strtolower(array_pop($args[1])), -1, PREG_SPLIT_NO_EMPTY);
 		switch($c) {
 			case 2:
-					$items = itemSearch($keywords);
+					$items = itemSearch($keywords, $owner);
 				break;
 			case 3:
-					$items = itemSearch($keywords, false, false, $args[1]);
+					$items = itemSearch($keywords, $owner, false, false, $args[1]);
 				break;
 			case 4:
-					$items = itemSearch($keywords, $args[1], $args[2]);
+					$items = itemSearch($keywords, $owner, $args[1], $args[2]);
 				break;
 		}
 		if($items === NULL) {
@@ -144,10 +149,59 @@ EOD;
 	 * This command handler handles the relay
 	 *
 	 * @HandlesCommand("rgms")
-	 * @Matches("/^rgms/i")
+	 * @Matches("/^rgms ([a-z]+) (\d+) ([a-z0-9-]+) (gms .+)$/i")
 	 */
 	public function relayCommand($message, $channel, $sender, $sendto, $args) {
-		$sendto->reply('Relay not implemented yet');
+		$buffer = new ReplyBuffer();
+		//$message = 'rgms Kartoffel 123 Captank gms search Potato'
+		
+		list($genCmd, $genParams) = explode(' ', $args[4], 2);
+		$cmd = strtolower($cmd);
+
+		$commandHandler = $this->commandManager->getActiveCommandHandler($genCmd, $args[1], $args[4]);
+
+		//if command doesnt exist, this should never be the case
+		if ($commandHandler === null) {
+			$sendto->reply("!agms {$args[2]} error");
+			return;
+		}
+		
+		// if the character doesn't have access
+		if ($this->accessManager->checkAccess($args[3], $commandHandler->admin) !== true) {
+			$sendto->reply("!agms {$args[2]} error");
+			return;
+		}
+
+		$msg = false;
+		try {
+			$syntaxError = $this->callCommandHandler($commandHandler, $args[4], $args[1], $args[3], $buffer);
+
+			if ($syntaxError === true) {
+				$msg = "!agms {$args[2]} error";
+			}
+		} catch (StopExecutionException $e) {
+			throw $e;
+		} catch (SQLException $e) {
+			$this->logger->log("ERROR", $e->getMessage(), $e);
+			$msg = "!agms {$args[2]} error";
+		} catch (Exception $e) {
+			$this->logger->log("ERROR", "Error executing '$message': " . $e->getMessage(), $e);
+			$msg = "!agms {$args[2]} error";
+		}
+		if($msg !== false) {
+			$sendto->reply($msg);
+		}
+		else{
+			$msg = $buffer->message;
+			if(!is_array($msg)) {
+				$msg = Array($msg);
+			}
+			$msg[] = "clean";
+			foreach($msg as &$m) {
+				$m = "!agms {$args[2]} $m";
+			}
+			$sendto->reply($msg);
+		}
 	}
 	
 	/**
@@ -280,7 +334,7 @@ EOD;
 	 * @param mixed $exactQL - int for for exact ql, false for inactive
 	 * @return array - array of DBRow for found items, null if no valid keywords
 	 */
-	public function itemSearch($keywords, $minQL = false, $maxQL = false, $exactQL = false) {
+	public function itemSearch($keywords, $owner = false, $minQL = false, $maxQL = false, $exactQL = false) {
 		$data = Array();
 		$sqlPattern = Array();
 		foreach($keywords as $keyword) {
@@ -292,6 +346,11 @@ EOD;
 		
 		if(count($data) == 0) {
 			return null;
+		}
+		
+		if($owner !== false) {
+			$sqlPattern[] = '`gms_items`.`shopid` != ?';
+			$data[] = $owner;
 		}
 
 		if($minQL !== false && $maxQL !== false) {
