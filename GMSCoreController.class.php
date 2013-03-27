@@ -42,6 +42,9 @@ class GlobalShopCoreController {
 	/** @Inject */
 	public $buddylistManager;
 	
+	private $shopNotFound = 'Error! No shop found for <highlight>%s<end>';
+	private $needToRegister = "You need to register first.";
+	
 	/**
 	 * @Setup
 	 */
@@ -52,7 +55,7 @@ class GlobalShopCoreController {
 //		$shop = $this->getShop(1, false, false);
 //		var_dump($this->getShopItems($shop->id, 1));
 //		var_dump($this->formatContacts($this->getShop(1)));
-		var_dump($this->getShop('xD', false, false));
+//		var_dump($this->getShop('xD', false, false));
 	}
 	
 	/**
@@ -78,6 +81,33 @@ EOD;
 		$sendto->reply($msg);
 	}
 	
+	/**
+	 * This command handler handles the registration process.
+	 *
+	 * @HandlesCommand("cgms")
+	 * @Matches("/^cgms show$/i")
+	 * @Matches("/^cgms show (.*)$/i")
+	 * @Matches("/^cmgs show (.*) (\d+)$/i")
+	 */
+	public function gmsShowCommand($message, $channel, $sender, $sendto, $args) {
+		$c = count($args);
+		$shop = $this->getShop($c == 1 ? $sender : $args[1]);
+	
+		if($shop === NULL) {
+			$msg = $c == 1 ? $this->needToRegister : sprintf($this->shopNotFound, $args[1]);
+		}
+		else {
+			switch($c) {
+				case 1:
+				case 2:
+						$msg = $this->formatShop($shop);
+					break;
+				case 3:
+						$msg = $this->formatCategory($shop, $args[2]);
+			}
+		}
+		$sendto->reply($msg);
+	}
 	
 	/**
 	 * This command handler handles the relay
@@ -126,6 +156,7 @@ WHERE
 	(`gms_shops`.`owner` = ?  OR `gms_contacts`.`character` = ? ) AND `gms_shops`.`id` = `gms_contacts`.`shopid`
 LIMIT 1
 EOD;
+			$identifier = ucfirst(strtolower($identifier));
 			$shop = $this->db->query($sql, $identifier, $identifier);
 			if(count($shop) != 1) {
 				return null;
