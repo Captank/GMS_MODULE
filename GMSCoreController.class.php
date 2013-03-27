@@ -82,12 +82,12 @@ EOD;
 	}
 	
 	/**
-	 * This command handler handles the registration process.
+	 * This command handler shows shops or categories.
 	 *
 	 * @HandlesCommand("cgms")
 	 * @Matches("/^cgms show$/i")
 	 * @Matches("/^cgms show (.*)$/i")
-	 * @Matches("/^cmgs show (.*) (\d+)$/i")
+	 * @Matches("/^cgms show (.*) (\d+)$/i")
 	 */
 	public function gmsShowCommand($message, $channel, $sender, $sendto, $args) {
 		$c = count($args);
@@ -105,6 +105,37 @@ EOD;
 				case 3:
 						$msg = $this->formatCategory($shop, $args[2]);
 			}
+		}
+		$sendto->reply($msg);
+	}
+	
+	/**
+	 * This command handler searches for items.
+	 *
+	 * @HandlesCommand("cgms")
+	 * @Matches("/^cgms search (\d+) (\d+) (.+)$/i")
+	 * @Matches("/^cgms search (\d+) (.+)$/i"
+	 * @Matches("/^cgms search (.+)$/i"
+	 */
+	public function gmsSearchCommad($message, $channel, $sender, $sendto, $args) {
+		$c = count($args);
+		$keywords = preg_split("|\\s+|", strtolower(array_pop($args[1])), -1, PREG_SPLIT_NO_EMPTY);
+		switch($c) {
+			case 2:
+					$items = itemSearch($keywords);
+				break;
+			case 3:
+					$items = itemSearch($keywords, false, false, $args[1]);
+				break;
+			case 4:
+					$items = itemSearch($keywords, $args[1], $args[2]);
+				break;
+		}
+		if($items === NULL) {
+			$msg = 'Error! No valid keywords. Keywords have to have a length of at least 3';
+		}
+		else {
+			$msg = $this->formatItems($items);
 		}
 		$sendto->reply($msg);
 	}
