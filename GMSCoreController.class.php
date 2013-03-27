@@ -59,6 +59,7 @@ class GlobalShopCoreController {
 //		var_dump($this->getShopItems($shop->id, 1));
 //		var_dump($this->formatContacts($this->getShop(1)));
 //		var_dump($this->getShop('xD', false, false));
+		var_dump($this->formatItems($this->itemSearch(Array('pant'))));
 	}
 	
 	/**
@@ -490,7 +491,7 @@ EOD;
 	 * @return string - the formated string chunk
 	 */
 	public function formatContacts($shop) {
-		$contacts = Array($shop->owner => ($this->buddylistManager->is_online($shop->owner)===1));
+		$contacts = Array($shop->owner => ($this->buddylistManager->is_online($shop->owner) === 1));
 		foreach($shop->contacts as $contact) {
 			if($this->buddylistManager->is_online($contact->character) === 1) {
 				$contacts[$contact->character] = true;
@@ -500,6 +501,46 @@ EOD;
 			$contacts[$name] = $this->text->make_userlink($name).($online ? '' : ' (offline)');
 		}
 		return '<center>'.implode('  ', $contacts).'</center>';
+	}
+	
+	/**
+	 * Format search results for messages.
+	 *
+	 * @param array $items - the items array
+	 * @return string - the formated string
+	 */
+	public function formatItems($items) {
+		if(($c = count($items)) == 0) {
+			return 'No items found.';
+		}
+		$categories = $this->getCategories();
+		$cats = $categories;
+		foreach($cats as $idx => $cat) {
+			$cats[$idx] = Array();
+		}
+		foreach($items as $item) {
+			$idx = $item->lowid.'/'.$item->highid;
+			$cats[$item->category][$idx][] = $item;
+		}
+		$msg = Array();
+		foreach($cats as $idx => $cat) {
+			if(count($cat) == 0) {
+				unset($cats[$idx]);
+			}
+			else {
+				$tmp = $categories[$idx];
+				foreach($cat as $itemSet) {
+					$tmp .= '<br><tab>';
+					$tmp2 = '';
+					foreach($itemSet as $item) {
+						$tmp2 .= '<br><tab><tab>'.$this->text->make_item($item->lowid, $item->highid, $item->ql, 'QL'.$item->ql).' '.$this->priceToString($item->price).' '.$this->text->make_chatcmd('contact', '/tell <myname> gms item '.$item->id);
+					}
+					$tmp .= $item->name.$tmp2.'<pagebreak>';
+				}
+				$msg[] = $tmp;
+			}
+		}
+		return $this->text->make_blob("$c result(s)", implode('<br><br><pagebreak>', $msg));
 	}
 	
 	/**
