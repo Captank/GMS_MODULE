@@ -59,7 +59,8 @@ class GlobalShopCoreController {
 //		var_dump($this->getShopItems($shop->id, 1));
 //		var_dump($this->formatContacts($this->getShop(1)));
 //		var_dump($this->getShop('xD', false, false));
-		var_dump($this->formatItems($this->itemSearch(Array('pant'))));
+//		var_dump($this->formatItems($this->itemSearch(Array('pant'))));
+		var_dump($this->formatItemEntry($this->getItemEntry(1)));
 	}
 	
 	/**
