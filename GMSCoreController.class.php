@@ -27,6 +27,9 @@ class GlobalShopCoreController {
 	/** @Inject */
 	public $util;
 	
+	/** @Inject */
+	public $buddylistManager;
+	
 	/**
 	 * @Setup
 	 */
@@ -36,7 +39,7 @@ class GlobalShopCoreController {
 //		var_dump($this->itemSearch(Array('pant')), $this->itemSearch(Array('pant'),50,300), $this->itemSearch(Array('pant'), false, false, 105));
 //		$shop = $this->getShop(1, false, false);
 //		var_dump($this->getShopItems($shop->id, 1));
-		var_dump($this->formatCategory($this->getShop(1),1));
+		var_dump($this->formatContacts($this->getShop(1)));
 	}
 	
 	/**
@@ -268,6 +271,7 @@ EOD;
 				$cat = sprintf('<tab>%s (%d %s)', $categories[$cid], $cat, ($cat > 1 ? 'items' : 'item'));
 			}
 		}
+		$cats[] = $this->formatContacts($shop);
 		return $this->text->make_blob($this->getTitle($shop), implode('<br><br>',$cats));
 	}
 	
@@ -304,6 +308,7 @@ EOD;
 			}
 			$out[] = sprintf("<tab>%s %s<br><tab>%s", $this->text->make_image($obj->icon), $obj->name, implode(' ', $tmp));
 		}
+		$out[] = $this->formatContacts($shop);
 		$out = implode('<br><br><pagebreak>', $out);
 		return $this->text->make_blob($this->getTitle($shop).' - '.$categories[$category], $out);
 	}
@@ -315,7 +320,16 @@ EOD;
 	 * @return string - the formated string chunk
 	 */
 	public function formatContacts($shop) {
-		return '<center>contacts</center>';
+		$contacts = Array($shop->owner => ($this->buddylistManager->is_online($shop->owner)===1));
+		foreach($shop->contacts as $contact) {
+			if($this->buddylistManager->is_online($contact->character) === 1) {
+				$contacts[$contact->character] = true;
+			}
+		}
+		foreach($contacts as $name => $online) {
+			$contacts[$name] = $this->text->make_userlink($name).($online ? '' : ' (offline)');
+		}
+		return '<center>'.implode('  ', $contacts).'</center>';
 	}
 	
 	public function getTitle($shop) {
