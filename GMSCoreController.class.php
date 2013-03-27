@@ -152,6 +152,8 @@ EOD;
 	 * @Matches("/^rgms ([a-z]+) (\d+) ([a-z0-9-]+) (gms .+)$/i")
 	 */
 	public function relayCommand($message, $channel, $sender, $sendto, $args) {
+		$sendto->reply('Relay disabled currently.');
+		return;
 		$buffer = new ReplyBuffer();
 		//$message = 'rgms Kartoffel 123 Captank gms search Potato'
 		
