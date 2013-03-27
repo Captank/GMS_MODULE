@@ -147,6 +147,23 @@ EOD;
 	}
 	
 	/**
+	 * This command handler shows a specific item entry.
+	 *
+	 * @HandlesCommand("cgms")
+	 * @Matches("/^cgms item (\d+)$/i")
+	 */
+	public function itemEntryCommand($message, $channel, $sender, $sendto, $args) {
+		$item = $this->getItemEntry($args[1]);
+		if($item == null) {
+			$msg = 'Error! Entry '.$args[1].' not found';
+		}
+		else {
+			$msg = $this->formatItemEntry();
+		}
+		$sendto->reply($msg);
+	}
+	
+	/**
 	 * This command handler handles the relay
 	 *
 	 * @HandlesCommand("rgms")
