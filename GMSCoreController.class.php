@@ -53,14 +53,6 @@ class GlobalShopCoreController {
 	 */
 	public function setup() {
 		$this->db->loadSQLFile($this->moduleName, "gms");
-//		var_dump($this->getShop(1), $this->getShop("Captank"), $this->getShop("Potato"), $this->getShop("xD"));
-//		var_dump($this->itemSearch(Array('pant')), $this->itemSearch(Array('pant'),50,300), $this->itemSearch(Array('pant'), false, false, 105));
-//		$shop = $this->getShop(1, false, false);
-//		var_dump($this->getShopItems($shop->id, 1));
-//		var_dump($this->formatContacts($this->getShop(1)));
-//		var_dump($this->getShop('xD', false, false));
-//		var_dump($this->formatItems($this->itemSearch(Array('pant'))));
-		var_dump($this->formatItemEntry($this->getItemEntry(1)));
 	}
 	
 	/**
@@ -91,8 +83,8 @@ EOD;
 	 *
 	 * @HandlesCommand("cgms")
 	 * @Matches("/^cgms show$/i")
-	 * @Matches("/^cgms show (.*)$/i")
-	 * @Matches("/^cgms show (.*) (\d+)$/i")
+	 * @Matches("/^cgms show ([a-z0-9-]+)$/i")
+	 * @Matches("/^cgms show ([a-z0-9-]+) (\d+)$/i")
 	 */
 	public function gmsShowCommand($message, $channel, $sender, $sendto, $args) {
 		$c = count($args);
