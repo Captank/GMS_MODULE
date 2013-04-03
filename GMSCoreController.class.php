@@ -71,7 +71,7 @@ class GlobalShopCoreController {
 	 */
 	public function gmsRegisterCommand($message, $channel, $sender, $sendto, $args) {
 		if(($shop = $this->getShop($sender, false, false)) !== NULL) {
-			$msg = 'Error! You are already registered on '.$this->getTitle($shop->owner).'.';
+			$msg = 'Error! You are already registered on '.$this->getTitle($shop).'.';
 		}
 		else {
 			$sql = <<<EOD
