@@ -111,8 +111,8 @@ EOD;
 	 *
 	 * @HandlesCommand("cgms")
 	 * @Matches("/^cgms search (\d+) (\d+) (.+)$/i")
-	 * @Matches("/^cgms search (\d+) (.+)$/i"
-	 * @Matches("/^cgms search (.+)$/i"
+	 * @Matches("/^cgms search (\d+) (.+)$/i")
+	 * @Matches("/^cgms search (.+)$/i")
 	 */
 	public function gmsSearchCommad($message, $channel, $sender, $sendto, $args) {
 		$owner = $this->getShop($sender, false, false);
@@ -121,13 +121,13 @@ EOD;
 		$keywords = preg_split("|\\s+|", strtolower(array_pop($args[1])), -1, PREG_SPLIT_NO_EMPTY);
 		switch($c) {
 			case 2:
-					$items = itemSearch($keywords, $owner);
+					$items = $this->itemSearch($keywords, $owner);
 				break;
 			case 3:
-					$items = itemSearch($keywords, $owner, false, false, $args[1]);
+					$items = $this->itemSearch($keywords, $owner, false, false, $args[1]);
 				break;
 			case 4:
-					$items = itemSearch($keywords, $owner, $args[1], $args[2]);
+					$items = $this->itemSearch($keywords, $owner, $args[1], $args[2]);
 				break;
 		}
 		if($items === NULL) {
