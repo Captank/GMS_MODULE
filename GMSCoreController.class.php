@@ -128,7 +128,12 @@ EOD;
 					$items = $this->itemSearch($keywords, $owner, false, false, $args[1]);
 				break;
 			case 4:
-					$items = $this->itemSearch($keywords, $owner, $args[1], $args[2]);
+					if($args[1] < $args[2]) {
+						$items = $this->itemSearch($keywords, $owner, $args[1], $args[2]);
+					}
+					else {
+						$items = $this->itemSearch($keywords, $owner, $args[2], $args[1]);
+					}
 				break;
 		}
 		if($items === NULL) {
