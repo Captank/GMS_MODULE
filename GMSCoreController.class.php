@@ -497,7 +497,7 @@ EOD;
 		}
 		else {
 			foreach($cats as $cid => &$cat) {
-				$cat = sprintf('<tab>%s (%d %s)', $categories[$cid], $cat, ($cat > 1 ? 'items' : 'item'));
+				$cat = sprintf('<tab>%s (%d %s)', $this->text->make_chatcmd($categories[$cid], '/tell <myname> cgms show '.$shop->id.' '.$cid), $cat, ($cat > 1 ? 'items' : 'item'));
 			}
 		}
 		$cats[] = $this->formatContacts($shop);
