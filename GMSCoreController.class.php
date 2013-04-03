@@ -45,6 +45,9 @@ class GlobalShopCoreController {
 	/** @Inject */
 	public $commandManager;
 	
+	/** @Inject */
+	public $accessManager;
+	
 	private $shopNotFound = 'Error! No shop found for <highlight>%s<end>';
 	private $needToRegister = "You need to register first.";
 	
@@ -166,13 +169,14 @@ EOD;
 	 * This command handler handles the relay
 	 *
 	 * @HandlesCommand("rgms")
-	 * @Matches("/^rgms ([a-z]+) (\d+) ([a-z0-9-]+) (gms .+)$/i")
+	 * @Matches("/^rgms ([a-z]+) (\d+) ([a-z0-9-]+) (cgms .+)$/i")
 	 */
 	public function relayCommand($message, $channel, $sender, $sendto, $args) {
 		$sendto->reply('Relay disabled currently.');
 		return;
+
 		$buffer = new ReplyBuffer();
-		//$message = 'rgms Kartoffel 123 Captank gms search Potato'
+		//$message = 'rgms msg 123 Captank cgms search Potato'
 		
 		list($genCmd, $genParams) = explode(' ', $args[4], 2);
 		$cmd = strtolower($cmd);
@@ -181,31 +185,31 @@ EOD;
 
 		//if command doesnt exist, this should never be the case
 		if ($commandHandler === null) {
-			$sendto->reply("!agms {$args[2]} error");
+			$sendto->reply("!agms {$args[2]} error - no command handler");
 			return;
 		}
 		
 		// if the character doesn't have access
 		if ($this->accessManager->checkAccess($args[3], $commandHandler->admin) !== true) {
-			$sendto->reply("!agms {$args[2]} error");
+			$sendto->reply("!agms {$args[2]} error - no access");
 			return;
 		}
 
 		$msg = false;
 		try {
-			$syntaxError = $this->callCommandHandler($commandHandler, $args[4], $args[1], $args[3], $buffer);
+			$syntaxError = $this->commandManager->callCommandHandler($commandHandler, $args[4], $args[1], $args[3], $buffer);
 
 			if ($syntaxError === true) {
-				$msg = "!agms {$args[2]} error";
+				$msg = "!agms {$args[2]} error - syntax error";
 			}
 		} catch (StopExecutionException $e) {
 			throw $e;
 		} catch (SQLException $e) {
 			$this->logger->log("ERROR", $e->getMessage(), $e);
-			$msg = "!agms {$args[2]} error";
+			$msg = "!agms {$args[2]} error - sql error";
 		} catch (Exception $e) {
 			$this->logger->log("ERROR", "Error executing '$message': " . $e->getMessage(), $e);
-			$msg = "!agms {$args[2]} error";
+			$msg = "!agms {$args[2]} error - exception thrown";
 		}
 		if($msg !== false) {
 			$sendto->reply($msg);
