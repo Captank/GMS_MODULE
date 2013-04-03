@@ -597,7 +597,7 @@ EOD;
 					$tmp .= '<br><tab>';
 					$tmp2 = '';
 					foreach($itemSet as $item) {
-						$tmp2 .= '<br><tab><tab>'.$this->text->make_item($item->lowid, $item->highid, $item->ql, 'QL'.$item->ql).' '.$this->priceToString($item->price).' '.$this->text->make_chatcmd('contact', '/tell <myname> gms item '.$item->id);
+						$tmp2 .= '<br><tab><tab>'.$this->text->make_item($item->lowid, $item->highid, $item->ql, 'QL'.$item->ql).' '.$this->priceToString($item->price).' '.$this->text->make_chatcmd('contact', '/tell <myname> cgms item '.$item->id);
 					}
 					$tmp .= $item->name.$tmp2.'<pagebreak>';
 				}
