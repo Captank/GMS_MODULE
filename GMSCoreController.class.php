@@ -118,7 +118,8 @@ EOD;
 		$owner = $this->getShop($sender, false, false);
 		$owner =  $owner === NULL ? false : $owner->id;
 		$c = count($args);
-		$keywords = preg_split("|\\s+|", strtolower(array_pop($args[1])), -1, PREG_SPLIT_NO_EMPTY);
+		$keywords = preg_split("|\\s+|", strtolower($args[$c-1]), -1, PREG_SPLIT_NO_EMPTY);
+		var_dump($keywords);
 		switch($c) {
 			case 2:
 					$items = $this->itemSearch($keywords, $owner);
