@@ -63,6 +63,23 @@ EOD;
 	}
 	
 	/**
+	 * This functions adds an contact to a shop.
+	 *
+	 * @param mixed $shop - the shop object
+	 * @param string $character - the name of the character
+	 */
+	public static function addContact($shop, $character) {
+		$sql = <<<EOD
+INSERT INTO
+    `gms_contacts`
+    (`shopid`,`character`)
+VALUES
+    (?, ?);
+EOD;
+		self::$db->exec($sql, $shop->id, $character);
+	}
+	
+	/**
 	 * Format shop category for messages.
 	 *
 	 * @params array $shop - the shop array structur
