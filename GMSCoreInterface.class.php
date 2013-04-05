@@ -12,14 +12,9 @@
  *		description = 'core gms command',
  *		help        = 'gmscore.txt'
  *	)
- *	@DefineCommand(
- *		command     = 'rgms',
- *		accessLevel = 'all',
- *		description = 'gms command relay',
- *		help        = 'gmscore.txt'
- *	)
  */
-class GlobalShopCoreController {
+
+class GMSCoreInterface {
 
 	/**
 	 * Name of the module.
@@ -55,7 +50,7 @@ class GlobalShopCoreController {
 	 * @Setup
 	 */
 	public function setup() {
-		$this->db->loadSQLFile($this->moduleName, "gms");
+		GMSCoreKernel::init($this->moduleName, $this->db, $this->text, $this->util, $this->buddylistManager);
 		
 		$msg = '<center>'.$this->text->make_chatcmd('I want to register!', '/tell <myname> cgms register').'</center>';
 		$msg = $this->text->make_blob('Registration',$msg);
@@ -63,88 +58,9 @@ class GlobalShopCoreController {
 		$this->needToRegister = $msg;
 	}
 	
-	/**
-	 * This command handler handles the registration process.
-	 *
-	 * @HandlesCommand("cgms")
-	 * @Matches("/^cgms register$/i")
-	 */
-	public function gmsRegisterCommand($message, $channel, $sender, $sendto, $args) {
-		if(($result = $this->registerShop($sender)) !== true) {
-			$msg = 'Error! You are already registered on '.$this->getTitle($result).'.';
-		}
-		else {
-			$msg = 'Registration successful.';
-		}
-		$sendto->reply($msg);
-	}
 	
-	/**
-	 * This command handler shows shops or categories.
-	 *
-	 * @HandlesCommand("cgms")
-	 * @Matches("/^cgms show$/i")
-	 * @Matches("/^cgms show ([a-z0-9-]+)$/i")
-	 * @Matches("/^cgms show ([a-z0-9-]+) (\d+)$/i")
-	 */
-	public function gmsShowCommand($message, $channel, $sender, $sendto, $args) {
-		$c = count($args);
-		$shop = $this->getShop($c == 1 ? $sender : $args[1]);
 	
-		if($shop === NULL) {
-			$msg = $c == 1 ? $this->needToRegister : sprintf($this->shopNotFound, $args[1]);
-		}
-		else {
-			switch($c) {
-				case 1:
-				case 2:
-						$msg = $this->formatShop($shop);
-					break;
-				case 3:
-						$msg = $this->formatCategory($shop, $args[2]);
-			}
-		}
-		$sendto->reply($msg);
-	}
 	
-	/**
-	 * This command handler searches for items.
-	 *
-	 * @HandlesCommand("cgms")
-	 * @Matches("/^cgms search (\d+) (\d+) (.+)$/i")
-	 * @Matches("/^cgms search (\d+) (.+)$/i")
-	 * @Matches("/^cgms search (.+)$/i")
-	 */
-	public function gmsSearchCommad($message, $channel, $sender, $sendto, $args) {
-		$owner = $this->getShop($sender, false, false);
-		$owner =  $owner === NULL ? false : $owner->id;
-		$c = count($args);
-		$keywords = preg_split("|\\s+|", strtolower($args[$c-1]), -1, PREG_SPLIT_NO_EMPTY);
-		var_dump($keywords);
-		switch($c) {
-			case 2:
-					$items = $this->itemSearch($keywords, $owner);
-				break;
-			case 3:
-					$items = $this->itemSearch($keywords, $owner, false, false, $args[1]);
-				break;
-			case 4:
-					if($args[1] < $args[2]) {
-						$items = $this->itemSearch($keywords, $owner, $args[1], $args[2]);
-					}
-					else {
-						$items = $this->itemSearch($keywords, $owner, $args[2], $args[1]);
-					}
-				break;
-		}
-		if($items === NULL) {
-			$msg = 'Error! No valid keywords. Keywords have to have a length of at least 3';
-		}
-		else {
-			$msg = $this->formatItems($items);
-		}
-		$sendto->reply($msg);
-	}
 	
 	/**
 	 * This command handler shows a specific item entry.
@@ -158,50 +74,62 @@ class GlobalShopCoreController {
 			$msg = 'Error! Entry '.$args[1].' not found';
 		}
 		else {
-			$msg = $this->formatItemEntry($entry);
+			$msg = GMSCoreKernel::formatItemEntry($entry);
 		}
 		$sendto->reply($msg);
 	}
-
+	
 	/**
-	 * This command handler adds an item to the store.
+	 * This command handler handles the registration process.
 	 *
 	 * @HandlesCommand("cgms")
-	 * @Matches('/^cgms sell <a href="itemref\:\/\/(\d+)\/(\d+)\/(\d+)"\>([^<]+)\<\/a\>$/i')
-	 * @Matches('/^cgms sell <a href="itemref\:\/\/(\d+)\/(\d+)\/(\d+)"\>([^<]+)\<\/a\> (.+)$/i')
+	 * @Matches("/^cgms register$/i")
 	 */
-	public function sellItemCommand($message, $channel, $sender, $sendto, $args) {
-		if(($shop = $this->getShop($sender, false, false)) === NULL) {
-			$msg = $this->needToRegister;
+	public function registerCommand($message, $channel, $sender, $sendto, $args) {
+		if(($result = GMSCoreKernel::registerShop($sender)) !== true) {
+			$msg = 'Error! You are already registered on '.$this->getTitle($result).'.';
 		}
 		else {
-			if(count($args) == 5) {
-				$args[] = 0;
-			}
-			else {
-				$price = $this->parsePrice($args[5]);
-			}
-			
-			if($price < 0) {
-				$msg = "Error! Invalid price '{$args[5]}'.";
-			}
-			else {
-				$state = $this->addItem($shop, $args[1], $args[2], $args[3], $args[5]);
-				switch($state) {
-					case 2:
-							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> added to your shop.';
-						break;
-					case 1:
-							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> price changed.';
-						break;
-					case 0:
-							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> already for <highlight>'.$this->priceToString($args[5]).'<end> in shop.';
-						break;
-					case -1:
-							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> is marked as invalid item.';
-						break;
-				}
-			}
+			$msg = 'Registration successful.';
+		}
+		$sendto->reply($msg);
+	}
+	
+	/**
+	 * This command handler searches for items.
+	 *
+	 * @HandlesCommand("cgms")
+	 * @Matches("/^cgms search (\d+) (\d+) (.+)$/i")
+	 * @Matches("/^cgms search (\d+) (.+)$/i")
+	 * @Matches("/^cgms search (.+)$/i")
+	 */
+	public function searchCommad($message, $channel, $sender, $sendto, $args) {
+		$owner = GMSCoreKernel::getShop($sender, false, false);
+		$owner =  $owner === NULL ? false : $owner->id;
+		$c = count($args);
+		$keywords = preg_split("|\\s+|", strtolower($args[$c-1]), -1, PREG_SPLIT_NO_EMPTY);
+
+		switch($c) {
+			case 2:
+					$items = GMSCoreKernel::itemSearch($keywords, $owner);
+				break;
+			case 3:
+					$items = GMSCoreKernel::itemSearch($keywords, $owner, false, false, $args[1]);
+				break;
+			case 4:
+					if($args[1] < $args[2]) {
+						$items = GMSCoreKernel::itemSearch($keywords, $owner, $args[1], $args[2]);
+					}
+					else {
+						$items = GMSCoreKernel::itemSearch($keywords, $owner, $args[2], $args[1]);
+					}
+				break;
+		}
+		if($items === NULL) {
+			$msg = 'Error! No valid keywords. Keywords have to have a length of at least 3';
+		}
+		else {
+			$msg = GMSCoreKernel::formatItems($items);
 		}
 		$sendto->reply($msg);
 	}
@@ -213,14 +141,14 @@ class GlobalShopCoreController {
 	 * @Matches("/^cgms sellall (.*)$/i")
 	 */
 	public function sellAllItemsCommand($message, $channel, $sender, $sendto, $args) {
-		if(($shop = $this->getShop($sender, false, false)) === NULL) {
+		if(($shop = GMSCoreKernel::getShop($sender, false, false)) === NULL) {
 			$msg = $this->needToRegister;
 		}
 		else {
 			if(preg_match_all('/<a href="itemref\:\/\/(\d+)\/(\d+)\/(\d+)"\>([^<]+)\<\/a\>/i', $args[1], $matches, PREG_SET_ORDER)) {
 				$items = Array(2 => Array(), 1 => Array(), 0 => Array(), -1 => Array());
 				foreach($matches as $item) {
-					$state = $this->addItem($shop, $item[1], $item[2], $item[3], 0);
+					$state = GMSCoreKernel::addItem($shop, $item[1], $item[2], $item[3], 0);
 					$items[$state][] = $item[4].' QL'.$item[3];
 				}
 				$ca = count($items[2]);
@@ -267,607 +195,75 @@ class GlobalShopCoreController {
 		}
 		$sendto->reply($msg);
 	}
-	
+
 	/**
-	 * This command handler handles the relay
+	 * This command handler adds an item to the store.
 	 *
-	 * @HandlesCommand("rgms")
-	 * @Matches("/^rgms ([a-z]+) (\d+) ([a-z0-9-]+) (cgms .+)$/i")
+	 * @HandlesCommand("cgms")
+	 * @Matches('/^cgms sell <a href="itemref\:\/\/(\d+)\/(\d+)\/(\d+)"\>([^<]+)\<\/a\>$/i')
+	 * @Matches('/^cgms sell <a href="itemref\:\/\/(\d+)\/(\d+)\/(\d+)"\>([^<]+)\<\/a\> (.+)$/i')
 	 */
-	public function relayCommand($message, $channel, $sender, $sendto, $args) {
-		$sendto->reply('Relay disabled currently.');
-		return;
-
-		$buffer = new ReplyBuffer();
-		//$message = 'rgms msg 123 Captank cgms search Potato'
-		
-		list($genCmd, $genParams) = explode(' ', $args[4], 2);
-		$cmd = strtolower($cmd);
-
-		$commandHandler = $this->commandManager->getActiveCommandHandler($genCmd, $args[1], $args[4]);
-
-		//if command doesnt exist, this should never be the case
-		if ($commandHandler === null) {
-			$sendto->reply("!agms {$args[2]} error - no command handler");
-			return;
-		}
-		
-		// if the character doesn't have access
-		if ($this->accessManager->checkAccess($args[3], $commandHandler->admin) !== true) {
-			$sendto->reply("!agms {$args[2]} error - no access");
-			return;
-		}
-
-		$msg = false;
-		try {
-			$syntaxError = $this->commandManager->callCommandHandler($commandHandler, $args[4], $args[1], $args[3], $buffer);
-
-			if ($syntaxError === true) {
-				$msg = "!agms {$args[2]} error - syntax error";
-			}
-		} catch (StopExecutionException $e) {
-			throw $e;
-		} catch (SQLException $e) {
-			$this->logger->log("ERROR", $e->getMessage(), $e);
-			$msg = "!agms {$args[2]} error - sql error";
-		} catch (Exception $e) {
-			$this->logger->log("ERROR", "Error executing '$message': " . $e->getMessage(), $e);
-			$msg = "!agms {$args[2]} error - exception thrown";
-		}
-		if($msg !== false) {
-			$sendto->reply($msg);
-		}
-		else{
-			$msg = $buffer->message;
-			if(!is_array($msg)) {
-				$msg = Array($msg);
-			}
-			$msg[] = "clean";
-			foreach($msg as &$m) {
-				$m = "!agms {$args[2]} $m";
-			}
-			$sendto->reply($msg);
-		}
-	}
-	
-	/**
-	 * Get shop data.
-	 *
-	 * @param mixed $identifier - either the owner/contact name or the shop id
-	 * @param boolean $contacts - defines if contacts will be fetched, default true
-	 * @param boolean $items - defines if items will be fetched, default true
-	 * @return array - the structured array with shop data, if no shop for $identifier was found NULL
-	 */
-	public function getShop($identifier, $contacts = true, $items = true) {
-		if(preg_match("~^\d+$~",$identifier)) {
-			$sql = <<<EOD
-SELECT
-	`gms_shops`.`id`,
-	`gms_shops`.`owner`
-FROM
-	`gms_shops`
-WHERE
-	`gms_shops`.`id` = ?
-LIMIT 1
-EOD;
-			$shop = $this->db->query($sql, $identifier);
-			if(count($shop) != 1) {
-				return null;
-			}
+	public function sellItemCommand($message, $channel, $sender, $sendto, $args) {
+		if(($shop = GMSCoreKernel::getShop($sender, false, false)) === NULL) {
+			$msg = $this->needToRegister;
 		}
 		else {
-			$sql = <<<EOD
-SELECT DISTINCT
-	`gms_shops`.`id`,
-	`gms_shops`.`owner`
-FROM
-	`gms_shops`,
-	`gms_contacts`
-WHERE
-	`gms_shops`.`owner` = ?  OR (`gms_contacts`.`character` = ? AND `gms_shops`.`id` = `gms_contacts`.`shopid`)
-LIMIT 1
-EOD;
-			$identifier = ucfirst(strtolower($identifier));
-			$shop = $this->db->query($sql, $identifier, $identifier);
-			if(count($shop) != 1) {
-				return null;
-			}
-		}
-		$shop = $shop[0];
-
-		if($contacts) {
-			$shop->contacts = $this->getShopContacts($shop->id);
-		}
-		else {
-			$shop->contacts = null;
-		}
-		if($items) {
-			$shop->items = $this->getShopItems($shop->id);
-		}
-		else {
-			$shop->items = null;
-		}
-		return $shop;
-	}
-	
-	/**
-	 * Get items data for a shop
-	 *
-	 * @param int $shopid - the shop id
-	 * @param mixed $category - int for the category id, false for all categories
-	 * @return array - array of DBRows for the item data
-	 */
-	public function getShopItems($shopid, $category = false) {
-		$data = Array($shopid);
-		
-		if($category !== false) {
-			$sql = " AND `gms_item_categories`.`category` = ?";
-			$data[] = $category;
-		}
-		else {
-			$sql = '';
-		}
-		$sql = <<<EOD
-SELECT
-	`gms_items`.`id`,
-	`gms_items`.`lowid`,
-	`gms_items`.`highid`,
-	`gms_items`.`ql`,
-	`aodb`.`name`,
-	`aodb`.`icon`,
-	`gms_items`.`price`,
-	`gms_item_categories`.`category`
-FROM
-	`gms_items`
-		LEFT JOIN
-	`aodb` ON `gms_items`.`lowid` = `aodb`.`lowid` AND `gms_items`.`highid` = `aodb`.`highid`
-		LEFT JOIN
-	`gms_item_categories` ON `gms_item_categories`.`lowid` = `gms_items`.`lowid` AND `gms_item_categories`.`highid` = `gms_items`.`highid`
-WHERE
-	`gms_items`.`shopid` = ?$sql
-ORDER BY
-	`gms_item_categories`.`category` ASC, `aodb`.`name` ASC, `gms_items`.`ql` ASC, `gms_items`.`price` ASC
-EOD;
-		return $this->db->query($sql, $data);
-	}
-	
-	/**
-	 * Get contact characters for an shop
-	 *
-	 * @param int $shopid - the shop id
-	 * @return array - array of DBRows for the contact data
-	 */
-	public function getShopContacts($shopid) {
-		$sql = <<<EOD
-SELECT
-	`gms_contacts`.`character`
-FROM
-	`gms_contacts`
-WHERE
-	`gms_contacts`.`shopid` = ?
-ORDER BY
-	`gms_contacts`.`character` ASC
-EOD;
-		return $this->db->query($sql, $shopid);
-	}
-	
-	/**
-	 * Search for an item.
-	 *
-	 * @param array $keywords - array of keywords
-	 * @param mixed $minQL - int for min ql, false for inactive
-	 * @param mixed $maxQL - int for max ql, false for inactive
-	 * @param mixed $exactQL - int for for exact ql, false for inactive
-	 * @return array - array of DBRow for found items, null if no valid keywords
-	 */
-	public function itemSearch($keywords, $owner = false, $minQL = false, $maxQL = false, $exactQL = false) {
-		$data = Array();
-		$sqlPattern = Array();
-		foreach($keywords as $keyword) {
-			if(strlen($keyword) > 2) {
-				$data[] = "%$keyword%";
-				$sqlPattern[] = "`aodb`.`name` LIKE ?";
-			}
-		}
-		
-		if(count($data) == 0) {
-			return null;
-		}
-		
-		if($owner !== false) {
-			$sqlPattern[] = '`gms_items`.`shopid` != ?';
-			$data[] = $owner;
-		}
-
-		if($minQL !== false && $maxQL !== false) {
-			$data[] = $minQL;
-			$data[] = $maxQL;
-			$sqlPattern[] = "`gms_items`.`ql` >= ?";
-			$sqlPattern[] = "`gms_items`.`ql` <= ?";
-		}
-		elseif($exactQL !== false) {
-			$data[] = $exactQL;
-			$sqlPattern[] = "`gms_items`.`ql` = ?";
-		}
-		$sql = implode(" AND ", $sqlPattern);
-		$sql = <<<EOD
-SELECT
-	`gms_items`.`id`,
-	`gms_items`.`shopid`,
-	`gms_items`.`lowid`,
-	`gms_items`.`highid`,
-	`gms_items`.`ql`,
-	`gms_items`.`price`,
-	`aodb`.`icon`,
-	`aodb`.`name`,
-	`gms_item_categories`.`category`
-FROM
-	`gms_items`
-		LEFT JOIN
-    `aodb` ON `gms_items`.`lowid` = `aodb`.`lowid` AND `gms_items`.`highid` = `aodb`.`highid`
-		LEFT JOIN
-	`gms_item_categories` ON `gms_items`.`lowid` = `gms_item_categories`.`lowid` AND `gms_items`.`highid` = `gms_item_categories`.`highid`
-WHERE
-	$sql
-ORDER BY
-	`gms_item_categories`.`category` ASC, `aodb`.`name` ASC, `gms_items`.`ql` ASC, `gms_items`.`price` ASC
-LIMIT 40
-EOD;
-		return $this->db->query($sql, $data);
-	}
-	
-	/**
-	 * Get all relevant shop data for an item entry.
-	 *
-	 * @param int $id - the id of the item entry
-	 * @return array - the shop array structure, null if invalid id
-	 */
-	public function getItemEntry($id) {
-	$sql = <<<EOD
-SELECT
-	`gms_items`.`id`,
-	`gms_items`.`shopid`,
-	`gms_items`.`lowid`,
-	`gms_items`.`highid`,
-	`gms_items`.`ql`,
-	`aodb`.`name`,
-	`aodb`.`icon`,
-	`gms_items`.`price`,
-	`gms_item_categories`.`category`
-FROM
-	`gms_items`
-		LEFT JOIN
-	`aodb` ON `gms_items`.`lowid` = `aodb`.`lowid` AND `gms_items`.`highid` = `aodb`.`highid`
-		LEFT JOIN
-	`gms_item_categories` ON `gms_item_categories`.`lowid` = `gms_items`.`lowid` AND `gms_item_categories`.`highid` = `gms_items`.`highid`
-WHERE
-	`gms_items`.`id` = ?
-EOD;
-		$item = $this->db->query($sql, $id);
-		if(count($item) != 1) {
-			return null;
-		}
-		
-		$item = $item[0];
-		$result = $this->getShop($item->shopid, true, false);
-		$result->itemEntry = $item;
-		return $result;
-		
-	}
-	/**
-	 * Get all categories.
-	 *
-	 * @return array - returns an array of categories, array index is category id and array value is category name
-	 */
-	public function getCategories() {
-		$sql = <<<EOD
-SELECT
-	`gms_categories`.`id`,
-	`gms_categories`.`name`
-FROM
-	`gms_categories`
-EOD;
-		$data = $this->db->query($sql);
-		
-		$result = Array();
-		foreach($data as $category) {
-			$result[$category->id] = $category->name;
-		}
-		return $result;
-	}
-		
-	/**
-	 * This function is to register a new shop.
-	 *
-	 * @param string $owner - name of the owner
-	 * @return mixed - true if okay, shop object, if already registered.
-	 */
-	public function registerShop($owner) {
-		if(($shop = $this->getShop($owner, false, false)) !== NULL) {
-			return $shop;
-		}
-		else {
-			$sql = <<<EOD
-INSERT INTO `gms_shops`
-    (`owner`)
-VALUES
-    (?)
-EOD;
-			$this->db->exec($sql, $owner);
-			return true;
-		}
-	}
-	
-	/**
-	 * This function adds an item to a shop, if the item already exists,
-	 * it updates the price.
-	 *
-	 * @param mixed $shop - the shop object
-	 * @param int $lowid - lowid of the item
-	 * @param int $highid - highid of the item
-	 * @param int $ql - ql of the item
-	 * @param int $price - the price for the item
-	 * @return int - 0 if already in shop, 1 if only price changed, 2 if added, -1 if invalid item
-	 */
-	public function addItem($shop, $lowid, $highid, $ql, $price) {
-		$sql = <<<EOD
-SELECT
-    `id`, `price`
-FROM
-    `gms_items`
-WHERE
-    `shopid` = ? AND `lowid` = ? AND `highid` = ? AND `ql` = ?
-LIMIT 1;
-EOD;
-		$item = $this->db->query($sql, $shop->id, $lowid, $highid, $ql);
-		if(count($item) == 1) {
-			if($item[0]->price == $price || $price == 0) {
-				return 0;
-			}
-			else{
-				$sql = <<<EOD
-UPDATE
-	`gms_items`
-SET
-	`price` = ?
-WHERE
-	`id` = ?
-EOD;
-				$this->db->exec($sql, $price, $item->id);
-				return 1;
-			}
-		}
-		elseif(false /*check for invalid item*/){
-			return -1;
-		}
-		else {
-			$sql = <<<EOD
-INSERT INTO
-	`gms_items`
-	(`shopid`, `lowid`, `highid`, `ql`, `price`)
-VALUES
-	(?, ?, ?, ?, ?);
-EOD;
-			$this->db->exec($sql, $shop->id, $lowid, $highid, $ql, $price);
-			return 2;
-		}
-	}
-	
-	/**
-	 * Format shop for messages.
-	 *
-	 * @params array $shop - the shop array structur
-	 * @return string - the formated message blob
-	 */
-	public function formatShop($shop) {
-		$categories = $this->getCategories();
-		
-		$cats = Array();
-		foreach($shop->items as $item) {
-			if(isset($cats[$item->category])) {
-				$cats[$item->category]++;
+			if(count($args) == 5) {
+				$args[] = 0;
 			}
 			else {
-				$cats[$item->category] = 1;
+				$price = GMSCoreKernel::parsePrice($args[5]);
 			}
-		}
-		
-		if(count($cats) == 0) {
-			$cats[] = '<tab>This shop is empty at the moment.';
-		}
-		else {
-			foreach($cats as $cid => &$cat) {
-				$cat = sprintf('<tab>%s (%d %s)', $this->text->make_chatcmd($categories[$cid], '/tell <myname> cgms show '.$shop->id.' '.$cid), $cat, ($cat > 1 ? 'items' : 'item'));
-			}
-		}
-		$cats[] = $this->formatContacts($shop);
-		return $this->text->make_blob($this->getTitle($shop), implode('<br><br>',$cats));
-	}
-	
-	/**
-	 * Format shop category for messages.
-	 *
-	 * @params array $shop - the shop array structur
-	 * @params int $category - the category id
-	 * @return string - the formated message blob
-	 */
-	public function formatCategory($shop, $category) {
-		$categories = $this->getCategories();
-		if(!isset($categories[$category])) {
-			return "Error! Invalid id '$category'";
-		}
-		$items = Array();
-		foreach($shop->items as $item) {
-			if($item->category == $category) {
-				$idx = $item->lowid.'/'.$item->highid;
-				if(!isset($items[$idx])) {
-					$items[$idx] = Array($item->ql => $item);
-				}
-				else {
-					$items[$idx][$item->ql] = $item;
-				}
-			}
-		}
-		
-		$out = Array();
-		foreach($items as $item) {
-			$tmp = Array();
-			foreach($item as $ql => $obj) {
-				$tmp[] = '['.$this->text->make_item($obj->lowid, $obj->highid, $ql, "QL$ql").' '.$this->priceToString($obj->price).']';
-			}
-			$out[] = sprintf("<tab>%s %s<br><tab>%s", $this->text->make_image($obj->icon), $obj->name, implode(' ', $tmp));
-		}
-		$out[] = $this->formatContacts($shop);
-		$out = implode('<br><br><pagebreak>', $out);
-		return $this->text->make_blob($this->getTitle($shop).' - '.$categories[$category], $out);
-	}
-	
-	/**
-	 * Format an item entry for messages.
-	 *
-	 * @param array $shop - the shop array structur
-	 * @return string - the formated message blob
-	 */
-	public function formatItemEntry($shop) {
-		$categories = $this->getCategories();
-		$msg = 	$categories[$shop->itemEntry->category].'<br><br><tab>'.
-				$this->text->make_item($shop->itemEntry->lowid, $shop->itemEntry->highid, $shop->itemEntry->ql, $shop->itemEntry->ql.' '.$shop->itemEntry->name).
-				'<br><tab>Price: '.$this->priceToString($shop->itemEntry->price).'<br>'.
-				$this->formatContacts($shop);
-		return $this->text->make_blob('Item details', $msg);
-	}
-	
-	/**
-	 * Generates the contact chunk for messages.
-	 *
-	 * @param array $shop - the shop array structur
-	 * @return string - the formated string chunk
-	 */
-	public function formatContacts($shop) {
-		$contacts = Array($shop->owner => ($this->buddylistManager->is_online($shop->owner) === 1));
-		foreach($shop->contacts as $contact) {
-			if($this->buddylistManager->is_online($contact->character) === 1) {
-				$contacts[$contact->character] = true;
-			}
-		}
-		foreach($contacts as $name => $online) {
-			$contacts[$name] = $this->text->make_userlink($name).($online ? '' : ' (offline)');
-		}
-		return '<center>'.implode('  ', $contacts).'</center>';
-	}
-	
-	/**
-	 * Format search results for messages.
-	 *
-	 * @param array $items - the items array
-	 * @return string - the formated string
-	 */
-	public function formatItems($items) {
-		if(($c = count($items)) == 0) {
-			return 'No items found.';
-		}
-		$categories = $this->getCategories();
-		$cats = $categories;
-		foreach($cats as $idx => $cat) {
-			$cats[$idx] = Array();
-		}
-		foreach($items as $item) {
-			$idx = $item->lowid.'/'.$item->highid;
-			$cats[$item->category][$idx][] = $item;
-		}
-		$msg = Array();
-		foreach($cats as $idx => $cat) {
-			if(count($cat) == 0) {
-				unset($cats[$idx]);
+			
+			if($price < 0) {
+				$msg = "Error! Invalid price '{$args[5]}'.";
 			}
 			else {
-				$tmp = $categories[$idx];
-				foreach($cat as $itemSet) {
-					$tmp .= '<br><tab>';
-					$tmp2 = '';
-					foreach($itemSet as $item) {
-						$tmp2 .= '<br><tab><tab>'.$this->text->make_item($item->lowid, $item->highid, $item->ql, 'QL'.$item->ql).' '.$this->priceToString($item->price).' '.$this->text->make_chatcmd('contact', '/tell <myname> cgms item '.$item->id);
-					}
-					$tmp .= $item->name.$tmp2.'<pagebreak>';
+				$state = GMSCoreKernel::addItem($shop, $args[1], $args[2], $args[3], $args[5]);
+				switch($state) {
+					case 2:
+							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> added to your shop.';
+						break;
+					case 1:
+							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> price changed.';
+						break;
+					case 0:
+							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> already for <highlight>'.$this->priceToString($args[5]).'<end> in shop.';
+						break;
+					case -1:
+							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> is marked as invalid item.';
+						break;
 				}
-				$msg[] = $tmp;
 			}
 		}
-		return $this->text->make_blob("$c result(s)", implode('<br><br><pagebreak>', $msg));
+		$sendto->reply($msg);
 	}
 	
 	/**
-	 * Generates the shop blob title.
+	 * This command handler shows shops or categories.
 	 *
-	 * @param array $shop - the shop array structur
-	 * @return string - the shop blob title
+	 * @HandlesCommand("cgms")
+	 * @Matches("/^cgms show$/i")
+	 * @Matches("/^cgms show ([a-z0-9-]+)$/i")
+	 * @Matches("/^cgms show ([a-z0-9-]+) (\d+)$/i")
 	 */
-	public function getTitle($shop) {
-		if($this->util->endsWith($shop->owner, 's')) {
-			return $shop->owner."' shop";
+	public function showCommand($message, $channel, $sender, $sendto, $args) {
+		$c = count($args);
+		$shop = GMSCoreKernel::getShop($c == 1 ? $sender : $args[1]);
+	
+		if($shop === NULL) {
+			$msg = $c == 1 ? $this->needToRegister : sprintf($this->shopNotFound, $args[1]);
 		}
 		else {
-			return $shop->owner.'s shop';
-		}
-	}
-	
-	/**
-	 * Parses a price string to its integer value.
-	 *
-	 * @param string $price - the price string
-	 * @retrun int - returns the integer value of the price, 0 if it is an offer, -1 if the price string is invalid.
-	 */
-	public function parsePrice($price) {
-		var_dump($price);
-		$price = strtolower($price);
-		if($price == 'offer') {
-			return 0;
-		}
-		elseif(preg_match("~^\\d+$~",$price)) {
-			$price = intval($price);
-		}
-		elseif(preg_match("~^(\\d*\\.?\\d+)(b|m|k)$~",$price,$match)) {
-			$price = floatval('0'.$match[1]);
-			switch($match[2]) {
-				case 'b':
-						$price *= 1000000000.0;
+			switch($c) {
+				case 1:
+				case 2:
+						$msg = GMSCoreKernel::formatShop($shop);
 					break;
-				case 'm':
-						$price *= 1000000.0;
-					break;
-				case 'k':
-						$price *= 1000.0;
-					break;
+				case 3:
+						$msg = GMSCoreKernel::formatCategory($shop, $args[2]);
 			}
-			$price = ceil($price);
 		}
-		else {
-			return -1;
-		}
-		return $price;
-	}
-	
-	/**
-	 * Converts a price to its string.
-	 *
-	 * @param int $price - the price
-	 * return string the string of the price
-	 */
-	public function priceToString($price) {
-		if($price == 0) {
-			return 'offer';
-		}
-		elseif($price < 1000) {
-			return $price;
-		}
-		elseif($price < 1000000) {
-			return ($price/1000.0).'k';
-		}
-		elseif($price < 1000000000) {
-			return ($price/1000000.0).'m';
-		}
-		else {
-			return ($price/1000000000.0).'b';
-		}
+		$sendto->reply($msg);
 	}
 }
