@@ -49,13 +49,18 @@ class GlobalShopCoreController {
 	public $accessManager;
 	
 	private $shopNotFound = 'Error! No shop found for <highlight>%s<end>';
-	private $needToRegister = "You need to register first.";
+	private $needToRegister = "";
 	
 	/**
 	 * @Setup
 	 */
 	public function setup() {
 		$this->db->loadSQLFile($this->moduleName, "gms");
+		
+		$msg = '<center>'.$this->text->make_chatcmd('I want to register!', '/tell <myname> cgms register').'</center>';
+		$msg = $this->text->make_blob('Registration',$msg);
+		$msg = 'Error! You need to register first. '.$msg;
+		$this->needToRegister = $msg;
 	}
 	
 	/**
@@ -162,14 +167,12 @@ class GlobalShopCoreController {
 	 * This command handler adds an item to the store.
 	 *
 	 * @HandlesCommand("cgms")
-	 * @Matches('/^cgms sell <a href="itemref\:\/\/(\d+)\/(\d+)\/(\d+)"\>[^<]+\<\/a\>$/i')
-	 * @Matches('/^cgms sell <a href="itemref\:\/\/(\d+)\/(\d+)\/(\d+)"\>[^<]+\<\/a\> (.+)$/i')
+	 * @Matches('/^cgms sell <a href="itemref\:\/\/(\d+)\/(\d+)\/(\d+)"\>([^<]+)\<\/a\>$/i')
+	 * @Matches('/^cgms sell <a href="itemref\:\/\/(\d+)\/(\d+)\/(\d+)"\>([^<]+)\<\/a\> (.+)$/i')
 	 */
 	public function sellItemCommand($message, $channel, $sender, $sendto, $args) {
 		if(($shop = $this->getShop($sender, false, false)) === NULL) {
-			$msg = '<center>'.$this->text->make_chatcmd('I want to register!', '/tell <myname> cgms register').'</center>';
-			$msg = $this->text->make_blob('Registration',$msg);
-			$msg = 'Error! You need to register first. '.$msg;
+			$msg = $this->needToRegister;
 		}
 		else {
 			if(count($args) == 5) {
@@ -183,12 +186,87 @@ class GlobalShopCoreController {
 				$msg = "Error! Invalid price '{$args[5]}'.";
 			}
 			else {
-				$this->addItem($shop, $args[1], $args[2], $args[3], $args[5]);
-				$msg = 'Item <highlight>'.$args[4].'<end> added to your shop.';
+				$state = $this->addItem($shop, $args[1], $args[2], $args[3], $args[5]);
+				switch($state) {
+					case 2:
+							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> added to your shop.';
+						break;
+					case 1:
+							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> price changed.';
+						break;
+					case 0:
+							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> already for <highlight>'.$this->priceToString($args[5]).'<end> in shop.';
+						break;
+					case -1:
+							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> is marked as invalid item.';
+						break;
+				}
 			}
 		}
 		$sendto->reply($msg);
-	}	
+	}
+	
+	/**
+	 * This command handler adds many items with price offer to the store.
+	 *
+	 * @HandlesCommand("cgms")
+	 * @Matches("/^cgms sellall (.*)$/i")
+	 */
+	public function sellAllItemsCommand($message, $channel, $sender, $sendto, $args) {
+		if(($shop = $this->getShop($sender, false, false)) === NULL) {
+			$msg = $this->needToRegister;
+		}
+		else {
+			if(preg_match_all('/<a href="itemref\:\/\/(\d+)\/(\d+)\/(\d+)"\>([^<]+)\<\/a\>/i', $args[1], $matches, PREG_SET_ORDER)) {
+				$items = Array(2 => Array(), 1 => Array(), 0 => Array(), -1 => Array());
+				foreach($matches as $item) {
+					$state = $this->addItem($shop, $item[1], $item[2], $item[3], 0);
+					$items[$state][] = $item[4].' QL'.$item[3];
+				}
+				$ca = count($items[2]);
+				$ct = count($matches);
+				
+				$msg = Array();
+				if(count($items[2])>0) {
+					$tmp = 'Items added:';
+					foreach($items[2] as $item) {
+						$tmp .= '<br><tab>'.$item;
+					}
+					$msg[] = $tmp;
+				}
+				
+				if(count($items[1])>0) {
+					$tmp = 'Items changed:';
+					foreach($items[1] as $item) {
+						$tmp .= '<br><tab>'.$item;
+					}
+					$msg[] = $tmp;
+				}
+				
+				if(count($items[0])>0) {
+					$tmp = 'Items unaffected:';
+					foreach($items[0] as $item) {
+						$tmp .= '<br><tab>'.$item;
+					}
+					$msg[] = $tmp;
+				}
+				
+				if(count($items[-1])>0) {
+					$tmp = 'Items forbidden:';
+					foreach($items[-1] as $item) {
+						$tmp .= '<br><tab>'.$item;
+					}
+					$msg[] = $tmp;
+				}
+				
+				$msg = $this->text->make_blob($ca.'/'.$ct.' items added.', implode('<br><br>', $msg));
+			}
+			else {
+				$msg = 'Error! No items to add!';
+			}
+		}
+		$sendto->reply($msg);
+	}
 	
 	/**
 	 * This command handler handles the relay
@@ -291,7 +369,6 @@ LIMIT 1
 EOD;
 			$identifier = ucfirst(strtolower($identifier));
 			$shop = $this->db->query($sql, $identifier, $identifier);
-var_dump($identifier, $shop);
 			if(count($shop) != 1) {
 				return null;
 			}
@@ -530,17 +607,40 @@ EOD;
 	 * @param int $highid - highid of the item
 	 * @param int $ql - ql of the item
 	 * @param int $price - the price for the item
+	 * @return int - 0 if already in shop, 1 if only price changed, 2 if added, -1 if invalid item
 	 */
 	public function addItem($shop, $lowid, $highid, $ql, $price) {
 		$sql = <<<EOD
-UPDATE
+SELECT
+    `id`, `price`
+FROM
     `gms_items`
-SET
-    `price` = ?
 WHERE
-    `shopid` = ? AND `lowid` = ? AND `highid` = ? AND `ql` = ?;
+    `shopid` = ? AND `lowid` = ? AND `highid` = ? AND `ql` = ?
+LIMIT 1;
 EOD;
-		if($this->db->exec($sql, $price, $shop->id, $lowid, $highid, $ql) == 0) {
+		$item = $this->db->query($sql, $shop->id, $lowid, $highid, $ql);
+		if(count($item) == 1) {
+			if($item[0]->price == $price || $price == 0) {
+				return 0;
+			}
+			else{
+				$sql = <<<EOD
+UPDATE
+	`gms_items`
+SET
+	`price` = ?
+WHERE
+	`id` = ?
+EOD;
+				$this->db->exec($sql, $price, $item->id);
+				return 1;
+			}
+		}
+		elseif(false /*check for invalid item*/){
+			return -1;
+		}
+		else {
 			$sql = <<<EOD
 INSERT INTO
 	`gms_items`
@@ -549,6 +649,7 @@ VALUES
 	(?, ?, ?, ?, ?);
 EOD;
 			$this->db->exec($sql, $shop->id, $lowid, $highid, $ql, $price);
+			return 2;
 		}
 	}
 	
@@ -717,6 +818,7 @@ EOD;
 	 * @retrun int - returns the integer value of the price, 0 if it is an offer, -1 if the price string is invalid.
 	 */
 	public function parsePrice($price) {
+		var_dump($price);
 		$price = strtolower($price);
 		if($price == 'offer') {
 			return 0;
@@ -724,7 +826,7 @@ EOD;
 		elseif(preg_match("~^\\d+$~",$price)) {
 			$price = intval($price);
 		}
-		if(preg_match("~^(\\d*\\.?\\d+)(b|m|k)$~",$price,$match)) {
+		elseif(preg_match("~^(\\d*\\.?\\d+)(b|m|k)$~",$price,$match)) {
 			$price = floatval('0'.$match[1]);
 			switch($match[2]) {
 				case 'b':
