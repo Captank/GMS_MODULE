@@ -18,7 +18,7 @@ class GMSCoreKernel {
 	 * @param int $price - the price for the item
 	 * @return int - 0 if already in shop, 1 if only price changed, 2 if added, -1 if invalid item
 	 */
-	public function addItem($shop, $lowid, $highid, $ql, $price) {
+	public static function addItem($shop, $lowid, $highid, $ql, $price) {
 		$sql = <<<EOD
 SELECT
     `id`, `price`
@@ -69,7 +69,7 @@ EOD;
 	 * @params int $category - the category id
 	 * @return string - the formated message blob
 	 */
-	public function formatCategory($shop, $category) {
+	public static function formatCategory($shop, $category) {
 		$categories = self::getCategories();
 		if(!isset($categories[$category])) {
 			return "Error! Invalid id '$category'";
@@ -106,7 +106,7 @@ EOD;
 	 * @param array $shop - the shop array structur
 	 * @return string - the formated string chunk
 	 */
-	public function formatContacts($shop) {
+	public static function formatContacts($shop) {
 		$contacts = Array($shop->owner => (self::$buddylistManager->is_online($shop->owner) === 1));
 		foreach($shop->contacts as $contact) {
 			if(self::$buddylistManager->is_online($contact->character) === 1) {
@@ -125,7 +125,7 @@ EOD;
 	 * @param array $shop - the shop array structur
 	 * @return string - the formated message blob
 	 */
-	public function formatItemEntry($shop) {
+	public static function formatItemEntry($shop) {
 		$categories = self::getCategories();
 		$msg = 	$categories[$shop->itemEntry->category].'<br><br><tab>'.
 				self::$text->make_item($shop->itemEntry->lowid, $shop->itemEntry->highid, $shop->itemEntry->ql, $shop->itemEntry->ql.' '.$shop->itemEntry->name).
@@ -140,7 +140,7 @@ EOD;
 	 * @param array $items - the items array
 	 * @return string - the formated string
 	 */
-	public function formatItems($items) {
+	public static function formatItems($items) {
 		if(($c = count($items)) == 0) {
 			return 'No items found.';
 		}
@@ -180,7 +180,7 @@ EOD;
 	 * @params array $shop - the shop array structur
 	 * @return string - the formated message blob
 	 */
-	public function formatShop($shop) {
+	public static function formatShop($shop) {
 		$categories = self::getCategories();
 		
 		$cats = Array();
@@ -210,7 +210,7 @@ EOD;
 	 *
 	 * @return array - returns an array of categories, array index is category id and array value is category name
 	 */
-	public function getCategories() {
+	public static function getCategories() {
 		$sql = <<<EOD
 SELECT
 	`gms_categories`.`id`,
@@ -233,7 +233,7 @@ EOD;
 	 * @param int $id - the id of the item entry
 	 * @return array - the shop array structure, null if invalid id
 	 */
-	public function getItemEntry($id) {
+	public static function getItemEntry($id) {
 	$sql = <<<EOD
 SELECT
 	`gms_items`.`id`,
@@ -332,7 +332,7 @@ EOD;
 	 * @param int $shopid - the shop id
 	 * @return array - array of DBRows for the contact data
 	 */
-	public function getShopContacts($shopid) {
+	public static function getShopContacts($shopid) {
 		$sql = <<<EOD
 SELECT
 	`gms_contacts`.`character`
@@ -353,7 +353,7 @@ EOD;
 	 * @param mixed $category - int for the category id, false for all categories
 	 * @return array - array of DBRows for the item data
 	 */
-	public function getShopItems($shopid, $category = false) {
+	public static function getShopItems($shopid, $category = false) {
 		$data = Array($shopid);
 		
 		if($category !== false) {
@@ -393,7 +393,7 @@ EOD;
 	 * @param array $shop - the shop array structur
 	 * @return string - the shop blob title
 	 */
-	public function getTitle($shop) {
+	public static function getTitle($shop) {
 		if(self::$util->endsWith($shop->owner, 's')) {
 			return $shop->owner."' shop";
 		}
@@ -430,7 +430,7 @@ EOD;
 	 * @param mixed $exactQL - int for for exact ql, false for inactive
 	 * @return array - array of DBRow for found items, null if no valid keywords
 	 */
-	public function itemSearch($keywords, $owner = false, $minQL = false, $maxQL = false, $exactQL = false) {
+	public static function itemSearch($keywords, $owner = false, $minQL = false, $maxQL = false, $exactQL = false) {
 		$data = Array();
 		$sqlPattern = Array();
 		foreach($keywords as $keyword) {
@@ -492,7 +492,7 @@ EOD;
 	 * @param string $price - the price string
 	 * @retrun int - returns the integer value of the price, 0 if it is an offer, -1 if the price string is invalid.
 	 */
-	public function parsePrice($price) {
+	public static function parsePrice($price) {
 		var_dump($price);
 		$price = strtolower($price);
 		if($price == 'offer') {
@@ -528,7 +528,7 @@ EOD;
 	 * @param int $price - the price
 	 * return string the string of the price
 	 */
-	public function priceToString($price) {
+	public static function priceToString($price) {
 		if($price == 0) {
 			return 'offer';
 		}
@@ -552,7 +552,7 @@ EOD;
 	 * @param string $owner - name of the owner
 	 * @return mixed - true if okay, shop object, if already registered.
 	 */
-	public function registerShop($owner) {
+	public static function registerShop($owner) {
 		if(($shop = self::getShop($owner, false, false)) !== NULL) {
 			return $shop;
 		}
