@@ -65,17 +65,10 @@ class GlobalShopCoreController {
 	 * @Matches("/^cgms register$/i")
 	 */
 	public function gmsRegisterCommand($message, $channel, $sender, $sendto, $args) {
-		if(($shop = $this->getShop($sender, false, false)) !== NULL) {
-			$msg = 'Error! You are already registered on '.$this->getTitle($shop).'.';
+		if(($result = $this->registerShop($sender)) !== true) {
+			$msg = 'Error! You are already registered on '.$this->getTitle($result).'.';
 		}
 		else {
-			$sql = <<<EOD
-INSERT INTO `gms_shops`
-    (`owner`)
-VALUES
-    (?)
-EOD;
-			$this->db->exec($sql, $sender);
 			$msg = 'Registration successful.';
 		}
 		$sendto->reply($msg);
@@ -164,6 +157,38 @@ EOD;
 		}
 		$sendto->reply($msg);
 	}
+
+	/**
+	 * This command handler adds an item to the store.
+	 *
+	 * @HandlesCommand("cgms")
+	 * @Matches('/^cgms sell <a href="itemref\:\/\/(\d+)\/(\d+)\/(\d+)"\>[^<]+\<\/a\>$/i')
+	 * @Matches('/^cgms sell <a href="itemref\:\/\/(\d+)\/(\d+)\/(\d+)"\>[^<]+\<\/a\> (.+)$/i')
+	 */
+	public function sellItemCommand($message, $channel, $sender, $sendto, $args) {
+		if(($shop = $this->getShop($sender, false, false)) === NULL) {
+			$msg = '<center>'.$this->text->make_chatcmd('I want to register!', '/tell <myname> cgms register').'</center>';
+			$msg = $this->text->make_blob('Registration',$msg);
+			$msg = 'Error! You need to register first. '.$msg;
+		}
+		else {
+			if(count($args) == 5) {
+				$args[] = 0;
+			}
+			else {
+				$price = $this->parsePrice($args[5]);
+			}
+			
+			if($price < 0) {
+				$msg = "Error! Invalid price '{$args[5]}'.";
+			}
+			else {
+				$this->addItem($shop, $args[1], $args[2], $args[3], $args[5]);
+				$msg = 'Item <highlight>'.$args[4].'<end> added to your shop.';
+			}
+		}
+		$sendto->reply($msg);
+	}	
 	
 	/**
 	 * This command handler handles the relay
@@ -261,11 +286,12 @@ FROM
 	`gms_shops`,
 	`gms_contacts`
 WHERE
-	(`gms_shops`.`owner` = ?  OR `gms_contacts`.`character` = ? ) AND `gms_shops`.`id` = `gms_contacts`.`shopid`
+	`gms_shops`.`owner` = ?  OR (`gms_contacts`.`character` = ? AND `gms_shops`.`id` = `gms_contacts`.`shopid`)
 LIMIT 1
 EOD;
 			$identifier = ucfirst(strtolower($identifier));
 			$shop = $this->db->query($sql, $identifier, $identifier);
+var_dump($identifier, $shop);
 			if(count($shop) != 1) {
 				return null;
 			}
@@ -471,6 +497,59 @@ EOD;
 			$result[$category->id] = $category->name;
 		}
 		return $result;
+	}
+		
+	/**
+	 * This function is to register a new shop.
+	 *
+	 * @param string $owner - name of the owner
+	 * @return mixed - true if okay, shop object, if already registered.
+	 */
+	public function registerShop($owner) {
+		if(($shop = $this->getShop($owner, false, false)) !== NULL) {
+			return $shop;
+		}
+		else {
+			$sql = <<<EOD
+INSERT INTO `gms_shops`
+    (`owner`)
+VALUES
+    (?)
+EOD;
+			$this->db->exec($sql, $owner);
+			return true;
+		}
+	}
+	
+	/**
+	 * This function adds an item to a shop, if the item already exists,
+	 * it updates the price.
+	 *
+	 * @param mixed $shop - the shop object
+	 * @param int $lowid - lowid of the item
+	 * @param int $highid - highid of the item
+	 * @param int $ql - ql of the item
+	 * @param int $price - the price for the item
+	 */
+	public function addItem($shop, $lowid, $highid, $ql, $price) {
+		$sql = <<<EOD
+UPDATE
+    `gms_items`
+SET
+    `price` = ?
+WHERE
+    `shopid` = ? AND `lowid` = ? AND `highid` = ? AND `ql` = ?;
+EOD;
+		if($this->db->exec($sql, $price, $shop->id, $lowid, $highid, $ql) == 0) {
+			$sql = <<<EOD
+INSERT INTO
+	`gms_items`
+	(`shopid`, `lowid`, `highid`, `ql`, `price`)
+VALUES
+	(?, ?, ?, ?, ?);
+EOD;
+			$this->db->exec($sql, $shop->id, $lowid, $highid, $ql, $price);
+		}
 	}
 	
 	/**
