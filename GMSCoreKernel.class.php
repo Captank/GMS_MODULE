@@ -586,7 +586,8 @@ EOD;
 		}
 		else {
 			$sql = <<<EOD
-INSERT INTO `gms_shops`
+INSERT INTO
+	`gms_shops`
     (`owner`)
 VALUES
     (?)
@@ -594,5 +595,22 @@ EOD;
 			self::$db->exec($sql, $owner);
 			return true;
 		}
+	}
+		
+	/**
+	 * This functions removes an contact from a shop.
+	 *
+	 * @param mixed $shop - the shop object
+	 * @param string $character - the name of the character
+	 */
+	public static function removeContact($character) {
+		$sql = <<<EOD
+DELETE FROM
+	`gms_contacts`
+WHERE
+	`character` = ?
+LIMIT 1;
+EOD;
+		self::$db->exec($sql, $character);
 	}
 }
