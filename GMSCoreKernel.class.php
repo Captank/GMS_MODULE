@@ -118,22 +118,33 @@ EOD;
 	}
 	
 	/**
-	 * Generates the contact chunk for messages.
+	 * Generates the contact chunk for messages or the list of contacts depending
+	 * on $asList.
 	 *
 	 * @param array $shop - the shop array structur
-	 * @return string - the formated string chunk
+	 * @param boolean $asList - defines if shows
+	 * @return string - the formated string (chunk)
 	 */
-	public static function formatContacts($shop) {
-		$contacts = Array($shop->owner => (self::$buddylistManager->is_online($shop->owner) === 1));
-		foreach($shop->contacts as $contact) {
-			if(self::$buddylistManager->is_online($contact->character) === 1) {
-				$contacts[$contact->character] = true;
+	public static function formatContacts($shop, $asList = false) {
+		if($asList) {
+			$contacts = Array();
+			foreach($shop->contacts as $contact) {
+				$contacts[] = '<tab>'.$contact->character;
 			}
+			return $this->make_blob(self::getTitle($shop).' - Contacts', implode('<br>', $contacts));
 		}
-		foreach($contacts as $name => $online) {
-			$contacts[$name] = self::$text->make_userlink($name).($online ? '' : ' (offline)');
+		else {
+			$contacts = Array($shop->owner => (self::$buddylistManager->is_online($shop->owner) === 1));
+			foreach($shop->contacts as $contact) {
+				if(self::$buddylistManager->is_online($contact->character) === 1) {
+					$contacts[$contact->character] = true;
+				}
+			}
+			foreach($contacts as $name => $online) {
+				$contacts[$name] = self::$text->make_userlink($name).($online ? '' : ' (offline)');
+			}
+			return '<center>'.implode('  ', $contacts).'</center>';		
 		}
-		return '<center>'.implode('  ', $contacts).'</center>';
 	}
 	
 	/**
