@@ -61,6 +61,95 @@ class GMSCoreInterface {
 	
 	
 	
+	/**
+	 * This command handler shows a specific item entry.
+	 *
+	 * @HandlesCommand("cgms")
+	 * @Matches("/^cgms contacts$/i")
+	 * @Matches("/^cgms contacts (add|rem) (.+)$/i")
+	 */
+	public function contactCommand($message, $channel, $sender, $sendto, $args) {
+		if(($shop = GMSCoreKernel::getShop($sender, true, false)) === NULL) {
+			$msg = $this->needToRegister;
+		}
+		else {
+			if(count($args) == 2) {
+				$msg = GMSCoreKernel::formatContacts($shop, true);
+			}
+			else {				
+				$args[2] = preg_split("|\\s+|", strtolower($args[2]), -1, PREG_SPLIT_NO_EMPTY);
+				$contacts = Array( 0 => Array(), 1 => Array(), 2 => Array(), 3 => Array());
+				foreach($args[2] as $contact) {
+					$contact = ucfirst(strtolower($contact));
+					if($this->chatBot->get_uid($contact)) {
+						$cshop = GMSCoreKernel::getShop($contact, false, false);
+						if($cshop === NULL) {
+							$contacts[0][] = $contact;
+						}
+						elseif($shop->owner == $cshop->owner) {
+							$contacts[1][] = $contact;
+						}
+						else{
+							$contacts[2][] = $contact;
+						}
+					}
+					else {
+						$contacts[3][] = $contact;
+					}
+				}
+				
+				$add = strtolower($args[1]) == 'add';
+				if($add) {
+					foreach($contacts[0] as $contact) {
+						GMSCoreKernel::addContact($shop, $contact);
+					}
+				}
+				else {
+					foreach($contacts[1] as $contact) {
+						GMSCoreKernel::removeContact($contact);
+					}
+				}
+				
+				$msg = Array();
+				if($add && count($contacts[0]) > 0) {
+					$tmp = 'Contacts added:';
+					foreach($contacts[0] as $contact) {
+						$tmp .= '<br><tab>'.$contact;
+					}
+					$msg[] = $tmp;
+				}
+				if(count($contacts[1]) > 0) {
+					$tmp = ($add ? 'Already your contacts:' : 'Removed contacts:');
+					foreach($contacts[1] as $contact) {
+						$tmp .= '<br><tab>'.$contact;
+					}
+					$msg[] = $tmp;
+				}
+				if(count($contacts[2]) > 0) {
+					$tmp = 'Already others contacts:';
+					foreach($contacts[2] as $contact) {
+						$tmp .= '<br><tab>'.$contact;
+					}
+					$msg[] = $tmp;
+				}
+				if(count($contacts[3]) > 0) {
+					$tmp = 'Not a player:';
+					foreach($contacts[3] as $contact) {
+						$tmp .= '<br><tab>'.$contact;
+					}
+				}
+				$msg = implode('<br><br>', $msg);
+				if(count($args[2]) < 5) {
+					$msg = str_replace('<br><br>', ' ', $msg);
+					$msg = str_replace('<br><tab>', ' ', $msg);
+				}
+				else {
+					$msg = $this->text->make_blob(count($args[2]).'/'.count($contacts[0]).' contacts '.($add ? 'added.' : 'removed.'), $msg);
+				}
+			}
+		}
+		$sendto->reply($msg);
+	}
 	
 	/**
 	 * This command handler shows a specific item entry.
