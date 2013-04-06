@@ -73,7 +73,7 @@ class GMSCoreInterface {
 			$msg = $this->needToRegister;
 		}
 		else {
-			if(count($args) == 2) {
+			if(count($args) == 1) {
 				$msg = GMSCoreKernel::formatContacts($shop, true);
 			}
 			else {				
@@ -176,7 +176,7 @@ class GMSCoreInterface {
 	 */
 	public function registerCommand($message, $channel, $sender, $sendto, $args) {
 		if(($result = GMSCoreKernel::registerShop($sender)) !== true) {
-			$msg = 'Error! You are already registered on '.$this->getTitle($result).'.';
+			$msg = 'Error! You are already registered on '.GMSCoreKernel::getTitle($result).'.';
 		}
 		else {
 			$msg = 'Registration successful.';

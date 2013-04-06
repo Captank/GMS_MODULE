@@ -131,7 +131,12 @@ EOD;
 			foreach($shop->contacts as $contact) {
 				$contacts[] = '<tab>'.$contact->character;
 			}
-			return $this->make_blob(self::getTitle($shop).' - Contacts', implode('<br>', $contacts));
+			if(count($contacts) == 0) {
+				return 'No contacts set besides '.$shop->owner.'.';
+			}
+			else {
+				return self::$text->make_blob(self::getTitle($shop).' - Contacts', implode('<br>', $contacts));
+			}
 		}
 		else {
 			$contacts = Array($shop->owner => (self::$buddylistManager->is_online($shop->owner) === 1));
@@ -321,20 +326,35 @@ EOD;
 		}
 		else {
 			$sql = <<<EOD
-SELECT DISTINCT
+SELECT
 	`gms_shops`.`id`,
 	`gms_shops`.`owner`
 FROM
-	`gms_shops`,
-	`gms_contacts`
+	`gms_shops`
 WHERE
-	`gms_shops`.`owner` = ?  OR (`gms_contacts`.`character` = ? AND `gms_shops`.`id` = `gms_contacts`.`shopid`)
+	`gms_shops`.`owner` = ?
 LIMIT 1
 EOD;
 			$identifier = ucfirst(strtolower($identifier));
-			$shop = self::$db->query($sql, $identifier, $identifier);
-			if(count($shop) != 1) {
-				return null;
+			$shop = self::$db->query($sql, $identifier);
+			if(count($shop) == 0) {
+				$sql = <<<EOD
+SELECT
+	`gms_shops`.`owner`,
+	`gms_shops`.`id`
+FROM
+	`gms_contacts`
+		LEFT JOIN
+	`gms_shops`
+		ON `gms_contacts`.`shopid` = `gms_shops`.`id`
+WHERE
+	`gms_contacts`.`character` = ?
+LIMIT 1
+EOD;
+				$shop = self::$db->query($sql, $identifier);
+				if(count($shop) == 0) {
+					return null;
+				}
 			}
 		}
 		$shop = $shop[0];
