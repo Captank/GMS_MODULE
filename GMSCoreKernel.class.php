@@ -467,6 +467,8 @@ EOD;
 		self::$buddylistManager = $buddylistManager;
 		
 		self::$db->loadSQLFile(self::$moduleName, "gms");
+		self::$db->loadSQLFile(self::$moduleName, "gms_categories");
+		self::$db->loadSQLFile(self::$moduleName, "gms_item_categories");
 	}
 	
 	/**
