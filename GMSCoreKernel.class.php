@@ -277,11 +277,11 @@ SELECT
 	`gms_item_data`.`name`,
 	`gms_item_data`.`icon`,
 	`gms_items`.`price`,
-	`gms_item_categories`.`category`
+	`gms_item_data`.`category`
 FROM
 	`gms_items`
 		LEFT JOIN
-	`gms_item_categories` ON `gms_item_categories`.`lowid` = `gms_items`.`lowid` AND `gms_item_categories`.`highid` = `gms_items`.`highid`
+	`gms_item_data` ON `gms_item_data`.`lowid` = `gms_items`.`lowid` AND `gms_item_data`.`highid` = `gms_items`.`highid`
 WHERE
 	`gms_items`.`id` = ?
 EOD;
@@ -403,7 +403,7 @@ EOD;
 		$data = Array($shopid);
 		
 		if($category !== false) {
-			$sql = " AND `gms_item_categories`.`category` = ?";
+			$sql = " AND `gms_item_data`.`category` = ?";
 			$data[] = $category;
 		}
 		else {
@@ -418,15 +418,15 @@ SELECT
 	`gms_item_data`.`name`,
 	`gms_item_data`.`icon`,
 	`gms_items`.`price`,
-	`gms_item_categories`.`category`
+	`gms_item_data`.`category`
 FROM
 	`gms_items`
 		LEFT JOIN
-	`gms_item_categories` ON `gms_item_categories`.`lowid` = `gms_items`.`lowid` AND `gms_item_categories`.`highid` = `gms_items`.`highid`
+	`gms_item_data` ON `gms_item_data`.`lowid` = `gms_items`.`lowid` AND `gms_item_data`.`highid` = `gms_items`.`highid`
 WHERE
 	`gms_items`.`shopid` = ?$sql
 ORDER BY
-	`gms_item_categories`.`category` ASC, `gms_item_data`.`name` ASC, `gms_items`.`ql` ASC, `gms_items`.`price` ASC
+	`gms_item_data`.`category` ASC, `gms_item_data`.`name` ASC, `gms_items`.`ql` ASC, `gms_items`.`price` ASC
 EOD;
 		return self::$db->query($sql, $data);
 	}
@@ -464,7 +464,7 @@ EOD;
 		
 		self::$db->loadSQLFile(self::$moduleName, "gms");
 		self::$db->loadSQLFile(self::$moduleName, "gms_categories");
-		self::$db->loadSQLFile(self::$moduleName, "gms_item_categories");
+		self::$db->loadSQLFile(self::$moduleName, "gms_item_data");
 	}
 	
 	/**
@@ -516,15 +516,15 @@ SELECT
 	`gms_items`.`price`,
 	`gms_item_data`.`icon`,
 	`gms_item_data`.`name`,
-	`gms_item_categories`.`category`
+	`gms_item_data`.`category`
 FROM
 	`gms_items`
 		LEFT JOIN
-	`gms_item_categories` ON `gms_items`.`lowid` = `gms_item_categories`.`lowid` AND `gms_items`.`highid` = `gms_item_categories`.`highid`
+	`gms_item_data` ON `gms_items`.`lowid` = `gms_item_data`.`lowid` AND `gms_items`.`highid` = `gms_item_data`.`highid`
 WHERE
 	$sql
 ORDER BY
-	`gms_item_categories`.`category` ASC, `gms_item_data`.`name` ASC, `gms_items`.`ql` ASC, `gms_items`.`price` ASC
+	`gms_item_data`.`category` ASC, `gms_item_data`.`name` ASC, `gms_items`.`ql` ASC, `gms_items`.`price` ASC
 LIMIT 40
 EOD;
 		return self::$db->query($sql, $data);
