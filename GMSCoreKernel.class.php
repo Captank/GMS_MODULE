@@ -274,14 +274,12 @@ SELECT
 	`gms_items`.`lowid`,
 	`gms_items`.`highid`,
 	`gms_items`.`ql`,
-	`aodb`.`name`,
-	`aodb`.`icon`,
+	`gms_item_data`.`name`,
+	`gms_item_data`.`icon`,
 	`gms_items`.`price`,
 	`gms_item_categories`.`category`
 FROM
 	`gms_items`
-		LEFT JOIN
-	`aodb` ON `gms_items`.`lowid` = `aodb`.`lowid` AND `gms_items`.`highid` = `aodb`.`highid`
 		LEFT JOIN
 	`gms_item_categories` ON `gms_item_categories`.`lowid` = `gms_items`.`lowid` AND `gms_item_categories`.`highid` = `gms_items`.`highid`
 WHERE
@@ -417,20 +415,18 @@ SELECT
 	`gms_items`.`lowid`,
 	`gms_items`.`highid`,
 	`gms_items`.`ql`,
-	`aodb`.`name`,
-	`aodb`.`icon`,
+	`gms_item_data`.`name`,
+	`gms_item_data`.`icon`,
 	`gms_items`.`price`,
 	`gms_item_categories`.`category`
 FROM
 	`gms_items`
 		LEFT JOIN
-	`aodb` ON `gms_items`.`lowid` = `aodb`.`lowid` AND `gms_items`.`highid` = `aodb`.`highid`
-		LEFT JOIN
 	`gms_item_categories` ON `gms_item_categories`.`lowid` = `gms_items`.`lowid` AND `gms_item_categories`.`highid` = `gms_items`.`highid`
 WHERE
 	`gms_items`.`shopid` = ?$sql
 ORDER BY
-	`gms_item_categories`.`category` ASC, `aodb`.`name` ASC, `gms_items`.`ql` ASC, `gms_items`.`price` ASC
+	`gms_item_categories`.`category` ASC, `gms_item_data`.`name` ASC, `gms_items`.`ql` ASC, `gms_items`.`price` ASC
 EOD;
 		return self::$db->query($sql, $data);
 	}
@@ -486,7 +482,7 @@ EOD;
 		foreach($keywords as $keyword) {
 			if(strlen($keyword) > 2) {
 				$data[] = "%$keyword%";
-				$sqlPattern[] = "`aodb`.`name` LIKE ?";
+				$sqlPattern[] = "`gms_item_data`.`name` LIKE ?";
 			}
 		}
 		
@@ -518,19 +514,17 @@ SELECT
 	`gms_items`.`highid`,
 	`gms_items`.`ql`,
 	`gms_items`.`price`,
-	`aodb`.`icon`,
-	`aodb`.`name`,
+	`gms_item_data`.`icon`,
+	`gms_item_data`.`name`,
 	`gms_item_categories`.`category`
 FROM
 	`gms_items`
-		LEFT JOIN
-    `aodb` ON `gms_items`.`lowid` = `aodb`.`lowid` AND `gms_items`.`highid` = `aodb`.`highid`
 		LEFT JOIN
 	`gms_item_categories` ON `gms_items`.`lowid` = `gms_item_categories`.`lowid` AND `gms_items`.`highid` = `gms_item_categories`.`highid`
 WHERE
 	$sql
 ORDER BY
-	`gms_item_categories`.`category` ASC, `aodb`.`name` ASC, `gms_items`.`ql` ASC, `gms_items`.`price` ASC
+	`gms_item_categories`.`category` ASC, `gms_item_data`.`name` ASC, `gms_items`.`ql` ASC, `gms_items`.`price` ASC
 LIMIT 40
 EOD;
 		return self::$db->query($sql, $data);
