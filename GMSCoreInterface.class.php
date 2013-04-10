@@ -298,17 +298,17 @@ class GMSCoreInterface {
 		}
 		else {
 			if(count($args) == 5) {
-				$args[] = 0;
+				$price = 0;
 			}
 			else {
 				$price = GMSCoreKernel::parsePrice($args[5]);
 			}
-			
+
 			if($price < 0) {
 				$msg = "Error! Invalid price '{$args[5]}'.";
 			}
 			else {
-				$state = GMSCoreKernel::addItem($shop, $args[1], $args[2], $args[3], $args[5]);
+				$state = GMSCoreKernel::addItem($shop, $args[1], $args[2], $args[3], $price);
 				switch($state) {
 					case 2:
 							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> added to your shop.';
@@ -317,7 +317,7 @@ class GMSCoreInterface {
 							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> price changed.';
 						break;
 					case 0:
-							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> already for <highlight>'.$this->priceToString($args[5]).'<end> in shop.';
+							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> already for <highlight>'.GMSCoreKernel::priceToString($args[5]).'<end> in shop.';
 						break;
 					case -1:
 							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> is marked as invalid item.';

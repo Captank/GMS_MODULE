@@ -184,7 +184,9 @@ EOD;
 		}
 		foreach($items as $item) {
 			$idx = $item->lowid.'/'.$item->highid;
-			$cats[$item->category][$idx][] = $item;
+			if($item->category !== null) {
+				$cats[$item->category][$idx][] = $item;
+			}
 		}
 		$msg = Array();
 		foreach($cats as $idx => $cat) {
@@ -218,11 +220,13 @@ EOD;
 		
 		$cats = Array();
 		foreach($shop->items as $item) {
-			if(isset($cats[$item->category])) {
-				$cats[$item->category]++;
-			}
-			else {
-				$cats[$item->category] = 1;
+			if($item->category !== null) {
+				if(isset($cats[$item->category])) {
+					$cats[$item->category]++;
+				}
+				else {
+					$cats[$item->category] = 1;
+				}
 			}
 		}
 		
