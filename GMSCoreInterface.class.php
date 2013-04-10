@@ -38,6 +38,9 @@ class GMSCoreInterface {
 	public $buddylistManager;
 	
 	/** @Inject */
+	public $gmsCoreKernel;
+	
+	/** @Inject */
 	public $commandManager;
 	
 	/** @Inject */
@@ -50,8 +53,6 @@ class GMSCoreInterface {
 	 * @Setup
 	 */
 	public function setup() {
-		GMSCoreKernel::init($this->moduleName, $this->db, $this->text, $this->util, $this->buddylistManager);
-		
 		$msg = '<center>'.$this->text->make_chatcmd('I want to register!', '/tell <myname> cgms register').'</center>';
 		$msg = $this->text->make_blob('Registration',$msg);
 		$msg = 'Error! You need to register first. '.$msg;
@@ -69,12 +70,12 @@ class GMSCoreInterface {
 	 * @Matches("/^cgms contacts (add|rem) (.+)$/i")
 	 */
 	public function contactCommand($message, $channel, $sender, $sendto, $args) {
-		if(($shop = GMSCoreKernel::getShop($sender, true, false)) === NULL) {
+		if(($shop = $this->gmsCoreKernel->getShop($sender, true, false)) === NULL) {
 			$msg = $this->needToRegister;
 		}
 		else {
 			if(count($args) == 1) {
-				$msg = GMSCoreKernel::formatContacts($shop, true);
+				$msg = $this->gmsCoreKernel->formatContacts($shop, true);
 			}
 			else {				
 				$args[2] = preg_split("|\\s+|", strtolower($args[2]), -1, PREG_SPLIT_NO_EMPTY);
@@ -82,7 +83,7 @@ class GMSCoreInterface {
 				foreach($args[2] as $contact) {
 					$contact = ucfirst(strtolower($contact));
 					if($this->chatBot->get_uid($contact)) {
-						$cshop = GMSCoreKernel::getShop($contact, false, false);
+						$cshop = $this->gmsCoreKernel->getShop($contact, false, false);
 						if($cshop === NULL) {
 							$contacts[0][] = $contact;
 						}
@@ -101,12 +102,12 @@ class GMSCoreInterface {
 				$add = strtolower($args[1]) == 'add';
 				if($add) {
 					foreach($contacts[0] as $contact) {
-						GMSCoreKernel::addContact($shop, $contact);
+						$this->gmsCoreKernel->addContact($shop, $contact);
 					}
 				}
 				else {
 					foreach($contacts[1] as $contact) {
-						GMSCoreKernel::removeContact($contact);
+						$this->gmsCoreKernel->removeContact($contact);
 					}
 				}
 				
@@ -158,12 +159,12 @@ class GMSCoreInterface {
 	 * @Matches("/^cgms item (\d+)$/i")
 	 */
 	public function itemEntryCommand($message, $channel, $sender, $sendto, $args) {
-		$entry = GMSCoreKernel::getItemEntry($args[1]);
+		$entry = $this->gmsCoreKernel->getItemEntry($args[1]);
 		if($entry == null) {
 			$msg = 'Error! Entry '.$args[1].' not found';
 		}
 		else {
-			$msg = GMSCoreKernel::formatItemEntry($entry);
+			$msg = $this->gmsCoreKernel->formatItemEntry($entry);
 		}
 		$sendto->reply($msg);
 	}
@@ -175,15 +176,15 @@ class GMSCoreInterface {
 	 * @Matches("/^cgms rem (\d+)$/i")
 	 */
 	public function itemRemoveCommand($message, $channel, $sender, $sendto, $args) {
-		if(($shop = GMSCoreKernel::getShop($sender, false, false)) === NULL) {
+		if(($shop = $this->gmsCoreKernel->getShop($sender, false, false)) === NULL) {
 			$msg = $this->needToRegister;
 		}
 		else {
-			$entry = GMSCoreKernel::getItemEntry($args[1]);
+			$entry = $this->gmsCoreKernel->getItemEntry($args[1]);
 			$msg = 'This item doesn\'t exist in your shop!';
 			if($entry !== null && $entry->id == $shop->id) {
-				GMSCoreKernel::removeItem($entry->itemEntry->id);
-				$msg = '<highlight>'$entry->itemEntry->name.'<end> removed';
+				$this->gmsCoreKernel->removeItem($entry->itemEntry->id);
+				$msg = '<highlight>'.$entry->itemEntry->name.'<end> removed';
 			}
 		}
 		$sendto->reply($msg);
@@ -196,8 +197,8 @@ class GMSCoreInterface {
 	 * @Matches("/^cgms register$/i")
 	 */
 	public function registerCommand($message, $channel, $sender, $sendto, $args) {
-		if(($result = GMSCoreKernel::registerShop($sender)) !== true) {
-			$msg = 'Error! You are already registered on '.GMSCoreKernel::getTitle($result).'.';
+		if(($result = $this->gmsCoreKernel->registerShop($sender)) !== true) {
+			$msg = 'Error! You are already registered on '.$this->gmsCoreKernel->getTitle($result).'.';
 		}
 		else {
 			$msg = 'Registration successful.';
@@ -214,24 +215,24 @@ class GMSCoreInterface {
 	 * @Matches("/^cgms search (.+)$/i")
 	 */
 	public function searchCommad($message, $channel, $sender, $sendto, $args) {
-		$owner = GMSCoreKernel::getShop($sender, false, false);
+		$owner = $this->gmsCoreKernel->getShop($sender, false, false);
 		$owner =  $owner === NULL ? false : $owner->id;
 		$c = count($args);
 		$keywords = preg_split("|\\s+|", strtolower($args[$c-1]), -1, PREG_SPLIT_NO_EMPTY);
 
 		switch($c) {
 			case 2:
-					$items = GMSCoreKernel::itemSearch($keywords, $owner);
+					$items = $this->gmsCoreKernel->itemSearch($keywords, $owner);
 				break;
 			case 3:
-					$items = GMSCoreKernel::itemSearch($keywords, $owner, false, false, $args[1]);
+					$items = $this->gmsCoreKernel->itemSearch($keywords, $owner, false, false, $args[1]);
 				break;
 			case 4:
 					if($args[1] < $args[2]) {
-						$items = GMSCoreKernel::itemSearch($keywords, $owner, $args[1], $args[2]);
+						$items = $this->gmsCoreKernel->itemSearch($keywords, $owner, $args[1], $args[2]);
 					}
 					else {
-						$items = GMSCoreKernel::itemSearch($keywords, $owner, $args[2], $args[1]);
+						$items = $this->gmsCoreKernel->itemSearch($keywords, $owner, $args[2], $args[1]);
 					}
 				break;
 		}
@@ -239,7 +240,7 @@ class GMSCoreInterface {
 			$msg = 'Error! No valid keywords. Keywords have to have a length of at least 3';
 		}
 		else {
-			$msg = GMSCoreKernel::formatItems($items);
+			$msg = $this->gmsCoreKernel->formatItems($items);
 		}
 		$sendto->reply($msg);
 	}
@@ -251,14 +252,14 @@ class GMSCoreInterface {
 	 * @Matches("/^cgms sellall (.*)$/i")
 	 */
 	public function sellAllItemsCommand($message, $channel, $sender, $sendto, $args) {
-		if(($shop = GMSCoreKernel::getShop($sender, false, false)) === NULL) {
+		if(($shop = $this->gmsCoreKernel->getShop($sender, false, false)) === NULL) {
 			$msg = $this->needToRegister;
 		}
 		else {
 			if(preg_match_all('/<a href="itemref\:\/\/(\d+)\/(\d+)\/(\d+)"\>([^<]+)\<\/a\>/i', $args[1], $matches, PREG_SET_ORDER)) {
 				$items = Array(2 => Array(), 1 => Array(), 0 => Array(), -1 => Array());
 				foreach($matches as $item) {
-					$state = GMSCoreKernel::addItem($shop, $item[1], $item[2], $item[3], 0);
+					$state = $this->gmsCoreKernel->addItem($shop, $item[1], $item[2], $item[3], 0);
 					$items[$state][] = $item[4].' QL'.$item[3];
 				}
 				$ca = count($items[2]);
@@ -314,7 +315,7 @@ class GMSCoreInterface {
 	 * @Matches('/^cgms sell <a href="itemref\:\/\/(\d+)\/(\d+)\/(\d+)"\>([^<]+)\<\/a\> (.+)$/i')
 	 */
 	public function sellItemCommand($message, $channel, $sender, $sendto, $args) {
-		if(($shop = GMSCoreKernel::getShop($sender, false, false)) === NULL) {
+		if(($shop = $this->gmsCoreKernel->getShop($sender, false, false)) === NULL) {
 			$msg = $this->needToRegister;
 		}
 		else {
@@ -322,14 +323,14 @@ class GMSCoreInterface {
 				$price = 0;
 			}
 			else {
-				$price = GMSCoreKernel::parsePrice($args[5]);
+				$price = $this->gmsCoreKernel->parsePrice($args[5]);
 			}
 
 			if($price < 0) {
 				$msg = "Error! Invalid price '{$args[5]}'.";
 			}
 			else {
-				$state = GMSCoreKernel::addItem($shop, $args[1], $args[2], $args[3], $price);
+				$state = $this->gmsCoreKernel->addItem($shop, $args[1], $args[2], $args[3], $price);
 				switch($state) {
 					case 2:
 							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> added to your shop.';
@@ -338,7 +339,7 @@ class GMSCoreInterface {
 							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> price changed.';
 						break;
 					case 0:
-							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> already for <highlight>'.GMSCoreKernel::priceToString($args[5]).'<end> in shop.';
+							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> already for <highlight>'.$this->gmsCoreKernel->priceToString($args[5]).'<end> in shop.';
 						break;
 					case -1:
 							$msg = 'Item <highlight>'.$args[4].' QL'.$args[3].'<end> is marked as invalid item.';
@@ -359,7 +360,7 @@ class GMSCoreInterface {
 	 */
 	public function showCommand($message, $channel, $sender, $sendto, $args) {
 		$c = count($args);
-		$shop = GMSCoreKernel::getShop($c == 1 ? $sender : $args[1]);
+		$shop = $this->gmsCoreKernel->getShop($c == 1 ? $sender : $args[1]);
 	
 		if($shop === NULL) {
 			$msg = $c == 1 ? $this->needToRegister : sprintf($this->shopNotFound, $args[1]);
@@ -368,14 +369,14 @@ class GMSCoreInterface {
 			switch($c) {
 				case 1:
 				case 2:
-						$msg = GMSCoreKernel::formatShop($shop);
+						$msg = $this->gmsCoreKernel->formatShop($shop);
 					break;
 				case 3:
-						$cshop = GMSCoreKernel::getShop($sender, false, false);
+						$cshop = $this->gmsCoreKernel->getShop($sender, false, false);
 						$owner = $shop->id == $cshop->id;
 						var_dump($cshop->id, $shop->id, $owner);
 						
-						$msg = GMSCoreKernel::formatCategory($shop, $args[2], $owner);
+						$msg = $this->gmsCoreKernel->formatCategory($shop, $args[2], $owner);
 			}
 		}
 		$sendto->reply($msg);
