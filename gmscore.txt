@@ -1,0 +1,33 @@
+To register:
+<highlight><tab><symbol>cgms register<end>
+
+To look at my shop:
+<highlight><tab><symbol>cgms show<end>
+
+To look at other peoples shop:
+<highlight><tab><symbol>cgms show [id|name]<end>
+
+To sell an item:
+<highlight><tab><symbol>cgms sell &lt;item&gt;<end>
+<highlight><tab><symbol>cgms sell &lt;item&gt; 'price'<end>
+Note: Prices are can be formated. k = 1.000, m = 1.000.000, b = 1.000.000.000 credits.
+<tab>Example: <highlight><symbol>cgms &lt;item&gt; 1234<end> | <highlight><symbol>cgms &lt;item&gt; 20.5m<end>
+<tab>You <highlight>CAN NOT<end> use more than one credits format, 1m500k would be INVALID.
+
+To sell many items:
+<highlight><tab><symbol>cgms sellall &lt;item&gt;[&lt;item&gt;[&lt;item&gt;[...]]]<end>
+Note: With this command the price is automatically set to 'offer'. It a price is already set up for this item, the price won't change.
+
+To search for items:
+<highlight><tab><symbol>cgms search 'keywords'<end>
+<highlight><tab><symbol>cgms search 'ql' 'keywords'<end>
+<highlight><tab><symbol>cgms search 'minql' 'maxql' 'keywords'<end>
+Note: Keywords are splitted by white-spaces. Keywords that are shorter than 3 characters will be ignored.
+
+To show contact list:
+<highlight><tab><symbol>cgms contacts<end>
+
+To add/remove contacts:
+<highlight><tab><symbol>cgms contacts add 'characters'<end>
+<highlight><tab><symbol>cgms contacts rem 'characters'<end>
+Note: Characters are splitted by white-spaces.
