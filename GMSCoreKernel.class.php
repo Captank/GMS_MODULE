@@ -498,7 +498,7 @@ EOD;
 			return $shop->owner."' shop";
 		}
 		else {
-			return $shop->owner.'s shop';
+			return $shop->owner."'s shop";
 		}
 	}
 	
