@@ -158,12 +158,33 @@ class GMSCoreInterface {
 	 * @Matches("/^cgms item (\d+)$/i")
 	 */
 	public function itemEntryCommand($message, $channel, $sender, $sendto, $args) {
-		$entry = $this->getItemEntry($args[1]);
+		$entry = GMSCoreKernel::getItemEntry($args[1]);
 		if($entry == null) {
 			$msg = 'Error! Entry '.$args[1].' not found';
 		}
 		else {
 			$msg = GMSCoreKernel::formatItemEntry($entry);
+		}
+		$sendto->reply($msg);
+	}
+	
+	/**
+	 * This command handler removes a specific item entry.
+	 *
+	 * @HandlesCommand("cgms")
+	 * @Matches("/^cgms rem (\d+)$/i")
+	 */
+	public function itemRemoveCommand($message, $channel, $sender, $sendto, $args) {
+		if(($shop = GMSCoreKernel::getShop($sender, false, false)) === NULL) {
+			$msg = $this->needToRegister;
+		}
+		else {
+			$entry = GMSCoreKernel::getItemEntry($args[1]);
+			$msg = 'This item doesn\'t exist in your shop!';
+			if($entry !== null && $entry->id == $shop->id) {
+				GMSCoreKernel::removeItem($entry->itemEntry->id);
+				$msg = '<highlight>'$entry->itemEntry->name.'<end> removed';
+			}
 		}
 		$sendto->reply($msg);
 	}
@@ -350,7 +371,11 @@ class GMSCoreInterface {
 						$msg = GMSCoreKernel::formatShop($shop);
 					break;
 				case 3:
-						$msg = GMSCoreKernel::formatCategory($shop, $args[2]);
+						$cshop = GMSCoreKernel::getShop($sender, false, false);
+						$owner = $shop->id == $cshop->id;
+						var_dump($cshop->id, $shop->id, $owner);
+						
+						$msg = GMSCoreKernel::formatCategory($shop, $args[2], $owner);
 			}
 		}
 		$sendto->reply($msg);

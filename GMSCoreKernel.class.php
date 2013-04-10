@@ -84,9 +84,10 @@ EOD;
 	 *
 	 * @params array $shop - the shop array structur
 	 * @params int $category - the category id
+	 * @params bool $owner - defines if its the owner of the shop, default false
 	 * @return string - the formated message blob
 	 */
-	public static function formatCategory($shop, $category) {
+	public static function formatCategory($shop, $category, $owner = false) {
 		$categories = self::getCategories();
 		if(!isset($categories[$category])) {
 			return "Error! Invalid id '$category'";
@@ -105,14 +106,30 @@ EOD;
 		}
 		
 		$out = Array();
-		foreach($items as $item) {
-			$tmp = Array();
-			foreach($item as $ql => $obj) {
-				$tmp[] = '['.self::$text->make_item($obj->lowid, $obj->highid, $ql, "QL$ql").' '.self::priceToString($obj->price).']';
+		if($owner) {
+			foreach($items as $item) {
+				$tmp = Array();
+				foreach($item as $ql => $obj) {
+					$tmp[] = '['.self::$text->make_item($obj->lowid, $obj->highid, $ql, "QL$ql").' '.self::priceToString($obj->price).' - '.self::$text->make_chatcmd('remove',sprintf('/tell <myname> cgms rem %d', $obj->id)).']';
+				}
+				$out[] = sprintf("<tab>%s %s<br><tab>%s", self::$text->make_image($obj->icon), $obj->name, implode(' ', $tmp));
 			}
-			$out[] = sprintf("<tab>%s %s<br><tab>%s", self::$text->make_image($obj->icon), $obj->name, implode(' ', $tmp));
 		}
-		$out[] = self::formatContacts($shop);
+		else {
+			foreach($items as $item) {
+				$tmp = Array();
+				foreach($item as $ql => $obj) {
+					$tmp[] = '['.self::$text->make_item($obj->lowid, $obj->highid, $ql, "QL$ql").' '.self::priceToString($obj->price).']';
+				}
+				$out[] = sprintf("<tab>%s %s<br><tab>%s", self::$text->make_image($obj->icon), $obj->name, implode(' ', $tmp));
+			}
+		}
+		if($owner) {
+			$out[] = '<center>'.self::$text->make_chatcmd('contact list', '/tell <myname> cgms contacts').'</center>';
+		}
+		else {
+			$out[] = self::formatContacts($shop);
+		}
 		$out = implode('<br><br><pagebreak>', $out);
 		return self::$text->make_blob(self::getTitle($shop).' - '.$categories[$category], $out);
 	}
@@ -632,5 +649,23 @@ WHERE
 LIMIT 1;
 EOD;
 		self::$db->exec($sql, $character);
+	}
+	
+	/**
+	 * This functions removes an item from a shop.
+	 *
+	 * @param mixed $shop - the shop object
+	 * @param int $item - id of the item
+	 */
+	public static function removeItem($item) {
+		$sql = <<<EOD
+DELETE FROM
+	`gms_items`
+WHERE
+	`id` = ?
+LIMIT 1;
+EOD;
+		var_dump($item);
+		self::$db->exec($sql, $item);
 	}
 }
