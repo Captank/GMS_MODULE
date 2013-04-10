@@ -154,6 +154,11 @@ EOD;
 				$out[] = sprintf("<tab>%s %s<br><tab>%s", $this->text->make_image($obj->icon), $obj->name, implode(' ', $tmp));
 			}
 		}
+		
+		if(count($out) == 0) {
+			$out[] = '<tab>This category is empty at the moment.';
+		}
+		
 		if($owner) {
 			$out[] = '<center>'.$this->text->make_chatcmd('contact list', '/tell <myname> cgms contacts').'</center>';
 		}

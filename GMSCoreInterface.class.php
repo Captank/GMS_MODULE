@@ -24,27 +24,12 @@ class GMSCoreInterface {
 
 	/** @Inject */
 	public $chatBot;
-	
-	/** @Inject */
-	public $db;
-	
+		
 	/** @Inject */
 	public $text;
-	
-	/** @Inject */
-	public $util;
-	
-	/** @Inject */
-	public $buddylistManager;
-	
+			
 	/** @Inject */
 	public $gmsCoreKernel;
-	
-	/** @Inject */
-	public $commandManager;
-	
-	/** @Inject */
-	public $accessManager;
 	
 	private $shopNotFound = 'Error! No shop found for <highlight>%s<end>';
 	private $needToRegister = "";
@@ -374,7 +359,6 @@ class GMSCoreInterface {
 				case 3:
 						$cshop = $this->gmsCoreKernel->getShop($sender, false, false);
 						$owner = $shop->id == $cshop->id;
-						var_dump($cshop->id, $shop->id, $owner);
 						
 						$msg = $this->gmsCoreKernel->formatCategory($shop, $args[2], $owner);
 			}
